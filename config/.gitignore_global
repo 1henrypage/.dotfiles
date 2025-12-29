@@ -1,0 +1,104 @@
+# -------------------------------
+# OS specific
+# -------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Finder and Spotlight
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# -------------------------------
+# Editor / IDE
+# -------------------------------
+# Vim / Neovim
+*~
+*.swp
+*.swo
+*.swash
+*~beta
+
+# Emacs
+*~
+*.elc
+.#*
+
+# VSCode
+.vscode/
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Nano
+*.save
+*.swp
+
+# -------------------------------
+# Shell / Terminal
+# -------------------------------
+# Zsh history
+.zsh_history
+bash_history
+sessions/
+
+# -------------------------------
+# Logs / Temp / Cache
+# -------------------------------
+*.log
+*.tmp
+*.temp
+*.cache
+
+# npm / Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pylint.d/
+
+# Ruby
+*.gem
+*.rbc
+.bundle/
+vendor/bundle/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# -------------------------------
+# Dependency directories (global development tools)
+# -------------------------------
+node_modules/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.terraform/
+
+# -------------------------------
+# Misc / IDE patterns
+# -------------------------------
+Thumbs.db
+ehthumbs.db
