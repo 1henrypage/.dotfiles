@@ -1,0 +1,40 @@
+# ~/.zhsenv
+# stolen from github.com/Lissy93/dotfiles
+# Core environmental variables
+
+# Set XDG directories
+export XDG_CONFIG_HOME="${HOME}/.config"
+export XDG_DATA_HOME="${HOME}/.local/share"
+export XDG_BIN_HOME="${HOME}/.local/bin"
+export XDG_LIB_HOME="${HOME}/.local/lib"
+export XDG_CACHE_HOME="${HOME}/.cache"
+
+# Set default applications
+export EDITOR="vim"
+export VISUAL="vim"
+export TERMINAL="kitty"
+export BROWSER="firefox"
+
+## Respect XDG directories
+export ADOTDIR="${XDG_CACHE_HOME}/zsh/antigen"
+export TMUX_CONF="${XDG_CONFIG_HOME}/tmux/tmux.conf"
+export CARGO_HOME="${XDG_DATA_HOME}/cargo"
+export CURL_HOME="${XDG_CONFIG_HOME}/curl"
+export DOCKER_CONFIG="${XDG_CONFIG_HOME}/docker"
+export TMUX_PLUGIN_MANAGER_PATH="${XDG_DATA_HOME}/tmux/plugins"
+
+# source $XDG_CONFIG_HOME/zsh/.zshrc
+
+# Encodings, languges and misc settings
+export LANG='en_GB.UTF-8';
+export PYTHONIOENCODING='UTF-8';
+export LC_ALL='C';
+
+# make sure user‐installed scripts are on PATH
+if [[ -d "$XDG_BIN_HOME" ]]; then
+  export PATH="$XDG_BIN_HOME:$PATH"
+fi
+
+
+
+
