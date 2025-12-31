@@ -116,6 +116,18 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
 #    fi
 fi
 
+--- POST INSTALL --- This is stuff that can't be installed via standard methods
+# Ensure Rust default toolchain is stable (non-interactive)
+if command_exists rustup; then
+    echo "Setting Rust default toolchain to stable..."
+    # Avoid prompts and ensure non-interactive
+    rustup default stable 
+fi
+
+# Neovim using 0.10.4
+curl -fsSL https://raw.githubusercontent.com/MordechaiHadad/bob/master/scripts/install.sh | bash
+bob use v0.10.4
+
 # --- Apply Preferences ---
 echo "Applying ZSH, Vim, TMUX plugins..."
 [ -f "$XDG_DATA_HOME/tmux/tpm" ] && sh "$XDG_DATA_HOME/tmux/tpm/bin/install_plugins"

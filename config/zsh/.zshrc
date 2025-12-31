@@ -29,6 +29,11 @@ if [[ -d $zsh_dir ]]; then
   done
 fi
 
+# Append Cargo to path, if it's installed
+if [[ -d "$HOME/.cargo/bin" ]]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
 # Add Zoxide (for cd, quick jump) to shell
 if hash zoxide 2> /dev/null; then
     eval "$(zoxide init zsh)"

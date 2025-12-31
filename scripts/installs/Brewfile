@@ -1,4 +1,4 @@
-
+'
 # Options
 cask_args appdir: '~/Applications', require_sha: true
 
@@ -6,6 +6,7 @@ cask_args appdir: '~/Applications', require_sha: true
 tap 'homebrew/bundle'
 tap 'homebrew/core'
 tap 'homebrew/services'
+tap 'homebrew/cask-fonts'
 
 #############################################################
 # Command Line                                              #
@@ -29,6 +30,7 @@ brew 'zoxide'       # Auto-learning navigation (better cd)
 # CASKS
 cask 'postman'        # HTTP API testing app 
 cask 'visual-studio-code' # Code editor
+cask 'kitty'              # GPU Accelerated Terminal Emulator
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
@@ -38,8 +40,7 @@ brew 'rustup'
 # DevOps
 brew 'container'         # Containers
 brew 'nmap'           # Port scanning
-cask 'wireshark'      # Network analyzer + packet capture
-brew 'openssl'        # Cryptography and SSL/TLS Toolkit
+cask 'wireshark'      # Network analyzer + packet capture brew 'openssl'        # Cryptography and SSL/TLS Toolkit
 
 # Media
 cask 'spotify', args: { require_sha: false } # Propietary music streaming
@@ -48,6 +49,9 @@ cask 'signal'         # Link to encrypted mobile messenger
 cask 'protonvpn'      # Client app for ProtonVPN
 
 cask "firefox-developer-edition"
+
+# Fonts
+cask 'font-fantasque-sans-mono-nerd-font'
 
 # Mac OS Mods and Imrovments
 cask 'alt-tab'        # Much better alt-tab window switcher
