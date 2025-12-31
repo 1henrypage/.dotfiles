@@ -1,0 +1,56 @@
+
+# Options
+cask_args appdir: '~/Applications', require_sha: true
+
+# Taps
+tap 'homebrew/bundle'
+tap 'homebrew/core'
+tap 'homebrew/services'
+
+#############################################################
+# Command Line                                              #
+#############################################################
+
+# CLI Essentials
+brew 'git'          # Version controll
+brew 'neovim'       # Text editor
+brew 'tmux'         # Term multiplexer
+
+# CLI Basics
+# brew 'fzf'          # Fuzzy file finder and filtering
+brew 'jq'           # JSON parser, output and query files
+brew 'ripgrep'      # Searching within files (better grep)
+brew 'tlrc'         # Community-maintained docs (better man)
+brew 'tree'         # Directory listings as tree structure
+brew 'trash-cli'    # Record and restore removed files
+brew 'unzip'        # Unzip
+brew 'watch'        # Run commands periorically
+brew 'zoxide'       # Auto-learning navigation (better cd)
+
+# CASKS
+cask 'postman'        # HTTP API testing app 
+cask 'visual-studio-code' # Code editor
+
+# Development Langs, Compilers, Package Managers and SDKs
+brew 'jenv'
+brew 'rustup'
+# TODO fix other language configurations later
+
+# DevOps
+brew 'container'         # Containers
+brew 'nmap'           # Port scanning
+cask 'wireshark'      # Network analyzer + packet capture
+brew 'openssl'        # Cryptography and SSL/TLS Toolkit
+
+# Media
+cask 'spotify', args: { require_sha: false } # Propietary music streaming
+cask 'iina'          # Media player
+cask 'signal'         # Link to encrypted mobile messenger
+cask 'protonvpn'      # Client app for ProtonVPN
+
+cask "firefox-developer-edition"
+
+# Mac OS Mods and Imrovments
+cask 'alt-tab'        # Much better alt-tab window switcher
+cask 'stats'          # System resource usage in menubar
+

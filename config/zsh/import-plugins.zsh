@@ -4,8 +4,6 @@ antigen theme romkatv/powerlevel10k
 
 antigen bundle zsh-users/zsh-syntax-highlighting
 
-antigen bundle agkozak/zsh-z
-
 antigen bundle zsh-users/zsh-completions
 
 antigen bundle zsh-users/zsh-autosuggestions
