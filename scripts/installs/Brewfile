@@ -13,7 +13,6 @@ tap 'homebrew/services'
 
 # CLI Essentials
 brew 'git'          # Version controll
-brew 'neovim'       # Text editor
 brew 'tmux'         # Term multiplexer
 
 # CLI Basics
