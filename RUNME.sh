@@ -26,10 +26,15 @@ curl -fsSL \
   | bash
 
 # ---- Step 2: Verify SSH access to GitHub ----
-if ! ssh -T git@github.com >/dev/null 2>&1; then
-  echo -e "${YELLOW}Warning:${RESET} Unable to verify SSH access to GitHub."
-  echo -e "${YELLOW}Make sure your SSH key is added to GitHub before continuing.${RESET}"
+echo -e "${PURPLE}Checking GitHub SSH access...${RESET}"
+
+if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+  echo -e "${GREEN}GitHub SSH authentication successful${RESET}"
+else
+  echo -e "${YELLOW}Warning:${RESET} GitHub SSH authentication could not be verified."
+  echo -e "${YELLOW}If cloning fails, ensure your public SSH key is added to GitHub.${RESET}"
 fi
+
 
 # ---- Step 3: Clone repo via SSH ----
 if [ -d "$REPO_DIR" ]; then
