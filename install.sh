@@ -72,9 +72,6 @@ SYMLINK_FILE="${SYMLINK_FILE:-symlinks.yaml}"
 DOTBOT_DIR="lib/dotbot"
 DOTBOT_BIN="bin/dotbot"
 
-# Make all .sh files under the script directory executable
-find "$SRC_DIR" -type f -name "*.sh" -exec chmod +x {} \;
-
 # ---- PRE - SETUP
 make_banner "1henrypage Setup" "$CYAN"
 

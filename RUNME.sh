@@ -25,8 +25,7 @@ curl -fsSL \
   https://raw.githubusercontent.com/1henrypage/.dotfiles/main/scripts/installs/prerequisites.sh \
   | bash
 
-
-# ---- Step 3: Clone repo via SSH ----
+# ---- Step 2: Clone repo via SSH ----
 if [ -d "$REPO_DIR" ]; then
   echo -e "${YELLOW}Dotfiles repo already exists at $REPO_DIR, skipping clone${RESET}"
 else
@@ -34,9 +33,8 @@ else
   git clone "$REPO_SSH" "$REPO_DIR"
 fi
 
-# ---- Step 4: Run install ----
+# ---- Step 3: Run install ----
 echo -e "${PURPLE}Running install script...${RESET}"
 cd "$REPO_DIR"
 ./install.sh
 
-echo -e "${GREEN}Bootstrap complete${RESET}"
