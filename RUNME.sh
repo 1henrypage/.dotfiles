@@ -30,12 +30,15 @@ echo -e "${PURPLE}Checking GitHub SSH access...${RESET}"
 
 SSH_OUTPUT="$(ssh -T git@github.com 2>&1 || true)"
 
-if echo "$SSH_OUTPUT" | grep -q "successfully authenticated"; then
-  echo -e "${GREEN}GitHub SSH authentication successful${RESET}"
-else
-  echo -e "${YELLOW}Warning:${RESET} GitHub SSH authentication could not be verified."
-  echo -e "${YELLOW}If cloning fails, ensure your public SSH key is added to GitHub.${RESET}"
-fi
+case "$SSH_OUTPUT" in
+  *"successfully authenticated"*)
+    echo -e "${GREEN}GitHub SSH authentication successful${RESET}"
+    ;;
+  *)
+    echo -e "${YELLOW}Warning:${RESET} GitHub SSH authentication could not be verified."
+    echo -e "${YELLOW}If cloning fails, ensure your public SSH key is added to GitHub.${RESET}"
+    ;;
+esac
 
 
 # ---- Step 3: Clone repo via SSH ----
