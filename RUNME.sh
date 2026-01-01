@@ -25,15 +25,6 @@ curl -fsSL \
   https://raw.githubusercontent.com/1henrypage/.dotfiles/main/scripts/installs/prerequisites.sh \
   | bash
 
-# ---- Step 2: Verify SSH access to GitHub ----
-echo -e "${PURPLE}Checking GitHub SSH access...${RESET}"
-
-if ssh -o BatchMode=yes -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-    echo "Git SSH authentication OK"
-else
-    echo "Git SSH authentication FAILED"
-fi
-
 
 # ---- Step 3: Clone repo via SSH ----
 if [ -d "$REPO_DIR" ]; then
