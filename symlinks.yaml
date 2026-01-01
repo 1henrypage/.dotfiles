@@ -1,14 +1,9 @@
--
-defaults:
+- defaults:
     link:
       create: true
       relink: true
 
 - clean: ['~', '${XDG_CONFIG_HOME}']
-
-- shell:
-  - description: Set XDG environmental variables
-    command: source ./config/zsh/.zshenv
 
 # Symlink locations for files / directories
 - link:

@@ -61,7 +61,12 @@ cleanup() {
 
 trap cleanup EXIT
 
-SYSTEM_TIME=$(uname -s)
+# Load environment variables from zshenv
+if [ -f "$SRC_DIR/config/zsh/.zshenv" ]; then
+    . "$SRC_DIR/config/zsh/.zshenv" || terminate
+fi
+
+SYSTEM_TYPE=$(uname -s)
 START_TIME=$(date +%s)
 SYMLINK_FILE="${SYMLINK_FILE:-symlinks.yaml}"
 DOTBOT_DIR="lib/dotbot"
@@ -90,9 +95,9 @@ git submodule update --recursive --remote --init
 
 echo "Setting up symlinks..."
 chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
-"$DOTBOT_DIR"/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE"
+"$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE"
 
- --- Install Packages ---
+# --- Install Packages ---
 if [ "$SYSTEM_TYPE" = "Darwin" ]; then
     # macOS Homebrew
     if ! command_exists brew; then
@@ -104,7 +109,7 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
         echo "Updating Homebrew and installing packages..."
         brew update
         brew upgrade
-        brew bundle --global --file "$HOME/.Brewfile"
+        brew bundle --global 
         brew cleanup
     fi
 # debian is shit, setup arch 
@@ -116,7 +121,7 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
 #    fi
 fi
 
---- POST INSTALL --- This is stuff that can't be installed via standard methods
+# --- POST INSTALL --- This is stuff that can't be installed via standard methods
 # Ensure Rust default toolchain is stable (non-interactive)
 if command_exists rustup; then
     echo "Setting Rust default toolchain to stable..."
