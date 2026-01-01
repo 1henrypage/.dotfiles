@@ -1,12 +1,6 @@
 # Options
 cask_args appdir: '~/Applications', require_sha: true
 
-# Taps
-tap 'homebrew/bundle'
-tap 'homebrew/core'
-tap 'homebrew/services'
-tap 'homebrew/cask-fonts'
-
 #############################################################
 # Command Line                                              #
 #############################################################
@@ -25,11 +19,13 @@ brew 'trash-cli'    # Record and restore removed files
 brew 'unzip'        # Unzip
 brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
+brew 'starship'     # Prompt
 
 # CASKS
 cask 'postman'        # HTTP API testing app 
 cask 'visual-studio-code' # Code editor
 cask 'kitty'              # GPU Accelerated Terminal Emulator
+cask 'karabiner-elements' # Karabiner Elements
 # cask 'intellij-idea'      # Code editpr for java
 # cask 'pycharm'            # Code editor py, ipynb
 
@@ -50,6 +46,8 @@ cask 'iina'          # Media player
 cask 'signal'         # Link to encrypted mobile messenger
 cask 'protonvpn'      # Client app for ProtonVPN
 
+
+# Browsers
 cask "firefox@developer-edition"
 
 # Fonts

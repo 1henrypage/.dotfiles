@@ -10,6 +10,7 @@
 
     # Essential configs (ZSH, Vim, Tmux)
     ~/.zshenv: { path: config/zsh/.zshenv, force: true }
+    ~/.zshrc: { path: config/zsh/.zshrc, force: true }
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/tmux: config/tmux
