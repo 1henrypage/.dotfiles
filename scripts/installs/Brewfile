@@ -30,8 +30,8 @@ brew 'zoxide'       # Auto-learning navigation (better cd)
 cask 'postman'        # HTTP API testing app 
 cask 'visual-studio-code' # Code editor
 cask 'kitty'              # GPU Accelerated Terminal Emulator
-cask 'intellij-idea'      # Code editpr for java
-cask 'pycharm'            # Code editor py, ipynb
+# cask 'intellij-idea'      # Code editpr for java
+# cask 'pycharm'            # Code editor py, ipynb
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
