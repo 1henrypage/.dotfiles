@@ -1,4 +1,3 @@
-'
 # Options
 cask_args appdir: '~/Applications', require_sha: true
 
@@ -50,7 +49,7 @@ cask 'iina'          # Media player
 cask 'signal'         # Link to encrypted mobile messenger
 cask 'protonvpn'      # Client app for ProtonVPN
 
-cask "firefox-developer-edition"
+cask "firefox@developer-edition"
 
 # Fonts
 cask 'font-fantasque-sans-mono-nerd-font'
