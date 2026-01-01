@@ -6,13 +6,6 @@ if [[ $- != *i* ]]; then
     return 1
 fi
 
-# MacOS-specific services
-if [ "$(uname -s)" = "Darwin" ]; then
-  # Add Brew to path, if it's installed
-  if [[ -d /opt/homebrew/bin ]]; then
-    export PATH=/opt/homebrew/bin:$PATH
-  fi
-fi
 
 if [[ -d $zsh_dir ]]; then
   # Source all alias files

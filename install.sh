@@ -122,7 +122,6 @@ fi
 # Ensure Rust default toolchain is stable (non-interactive)
 if command_exists rustup; then
     echo "Setting Rust default toolchain to stable..."
-    # Avoid prompts and ensure non-interactive
     rustup default stable 
 fi
 

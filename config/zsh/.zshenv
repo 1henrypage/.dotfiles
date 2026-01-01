@@ -33,10 +33,26 @@ if [[ -d "$XDG_BIN_HOME" ]]; then
   export PATH="$XDG_BIN_HOME:$PATH"
 fi
 
+# MacOS-specific services
+if [ "$(uname -s)" = "Darwin" ]; then
+  # Add Brew to path, if it's installed
+  if [[ -d /opt/homebrew/bin ]]; then
+    export PATH=/opt/homebrew/bin:$PATH
+  fi
+fi
+
+
 # Rust / Cargo
 if [[ -d "$CARGO_HOME/bin" ]]; then
   export PATH="$CARGO_HOME/bin:$PATH"
 fi
+
+
+# Point binaries to brew THIS MIGHT NEED TO BE CHANGED TO SUPPORT ARCH
+export PATH="$HOME/.rustup/toolchains/$(rustup show active-toolchain | cut -d' ' -f1)/bin:$PATH"
+
+#if command -v rustup >/dev/null 2>&1; then
+#fi
 
 # Neovim (bob)
 if [[ -d "$XDG_DATA_HOME/bob/nvim-bin" ]]; then
