@@ -135,9 +135,8 @@ echo "Applying ZSH, Vim, TMUX plugins..."
 [ -f "$XDG_DATA_HOME/tmux/tpm" ] && sh "$XDG_DATA_HOME/tmux/tpm/bin/install_plugins"
 [ -x "$(command -v zsh)" ] && /bin/zsh -i -c "antigen update && antigen-apply"
 
-
 # --- Finishing Up ---
-source "$HOME/.zshenv" 2>/dev/null
+# source "$HOME/.zshenv" 2>/dev/null
 
 elapsed=$(( $(date +%s) - START_TIME ))
 if [ $elapsed -gt 60 ]; then

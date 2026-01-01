@@ -28,9 +28,19 @@ export LANG='en_GB.UTF-8';
 export PYTHONIOENCODING='UTF-8';
 export LC_ALL='C';
 
-# make sure user‐installed scripts are on PATH
+# User Binaries
 if [[ -d "$XDG_BIN_HOME" ]]; then
   export PATH="$XDG_BIN_HOME:$PATH"
+fi
+
+# Rust / Cargo
+if [[ -d "$CARGO_HOME/bin" ]]; then
+  export PATH="$CARGO_HOME/bin:$PATH"
+fi
+
+# Neovim (bob)
+if [[ -d "$XDG_DATA_HOME/bob/nvim-bin" ]]; then
+  export PATH="$XDG_DATA_HOME/bob/nvim-bin:$PATH"
 fi
 
 
