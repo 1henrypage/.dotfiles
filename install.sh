@@ -109,7 +109,7 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
         echo "Updating Homebrew and installing packages..."
         brew update
         brew upgrade
-        brew bundle --global 
+        brew bundle --global --verbose
         brew cleanup
     fi
 # debian is shit, setup arch 

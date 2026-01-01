@@ -41,7 +41,8 @@ brew 'rustup'
 # DevOps
 brew 'container'         # Containers
 brew 'nmap'           # Port scanning
-cask 'wireshark'      # Network analyzer + packet capture brew 'openssl'        # Cryptography and SSL/TLS Toolkit
+cask 'wireshark'      # Network analyzer + packet capture       # Cryptography and SSL/TLS Toolkit
+brew 'openssl'    
 
 # Media
 cask 'spotify', args: { require_sha: false } # Propietary music streaming
