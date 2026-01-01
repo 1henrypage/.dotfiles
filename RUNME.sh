@@ -28,7 +28,9 @@ curl -fsSL \
 # ---- Step 2: Verify SSH access to GitHub ----
 echo -e "${PURPLE}Checking GitHub SSH access...${RESET}"
 
-if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+SSH_OUTPUT="$(ssh -T git@github.com 2>&1 || true)"
+
+if echo "$SSH_OUTPUT" | grep -q "successfully authenticated"; then
   echo -e "${GREEN}GitHub SSH authentication successful${RESET}"
 else
   echo -e "${YELLOW}Warning:${RESET} GitHub SSH authentication could not be verified."
