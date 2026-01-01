@@ -127,7 +127,7 @@ fi
 
 # Neovim using 0.10.4
 curl -fsSL https://raw.githubusercontent.com/MordechaiHadad/bob/master/scripts/install.sh | bash
-bob use v0.10.4
+bob use v0.11.5
 
 # --- Apply Preferences ---
 echo "Applying ZSH, Vim, TMUX plugins..."
