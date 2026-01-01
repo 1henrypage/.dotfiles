@@ -21,7 +21,7 @@ if [[ -d $zsh_dir ]]; then
   done
   
   # Setup Antigen
-  source ${zsh_dir}/setup-antigen
+  source ${zsh_dir}/setup-antigen.zsh
   
   # Source all lib files
   for file in "$zsh_dir"/lib/*.zsh; do

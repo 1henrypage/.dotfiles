@@ -108,11 +108,6 @@ alias cpuhog='ps -eo pid,ppid,cmd,%cpu --sort=-%cpu | head' # Processes consumin
 alias distro='cat /etc/*-release' # Show OS info
 alias ports='netstat -tulanp' # Show open ports
 
-# Copy / pasting
-alias copy = 'pbcopy'
-alias cpwd='pwd | pbcopy' # Copy current path
-alias pa='pbpaste' # Paste clipboard contents
-
 # App Specific
 if command_exists code ; then; alias vsc='code .'; fi # Launch VS Code in current dir
 
