@@ -11,6 +11,7 @@
     # Essential configs (ZSH, Vim, Tmux)
     ~/.zshenv: { path: config/zsh/.zshenv, force: true }
     ~/.zshrc: { path: config/zsh/.zshrc, force: true }
+    ~/.tmux/plugins/tpm: lib/tpm
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/tmux: config/tmux
@@ -18,7 +19,6 @@
     ${XDG_CONFIG_HOME}/karabiner: config/karabiner
     ${XDG_CONFIG_HOME}/starship.toml: config/general/starship.toml
 
-    ${XDG_DATA_HOME}/tmux/plugins/tpm: lib/tpm
     
     # Utility config files
     ${HOME}/.gitconfig: config/general/.gitconfig
