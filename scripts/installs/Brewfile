@@ -60,3 +60,5 @@ cask 'font-fantasque-sans-mono-nerd-font'
 # Mac OS Mods and Imrovments
 cask 'alt-tab'        # Much better alt-tab window switcher
 cask 'stats'          # System resource usage in menubar
+cask 'aldente'        # Battery manager
+
