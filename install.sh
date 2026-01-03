@@ -109,6 +109,12 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
         brew bundle --global --verbose
         brew cleanup
     fi
+
+
+    
+    echo "Running MacOS specific setup scripts"
+    macos_script="$SRC_DIR/scripts/macos/install.sh"
+    chmod +x "$macos_script" && "$macos_script"
 # debian is shit, setup arch 
 #elif [ -f "/etc/debian_version" ]; then
 #    echo "Installing packages via apt..."
