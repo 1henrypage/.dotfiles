@@ -49,6 +49,7 @@ brew 'openssl'
 cask 'spotify', args: { require_sha: false } # Propietary music streaming
 cask 'iina'          # Media player
 cask 'signal'         # Link to encrypted mobile messenger
+cask 'whatsapp'       # Luddite messenger
 cask 'protonvpn'      # Client app for ProtonVPN
 
 # Browsers
@@ -58,7 +59,6 @@ cask "firefox@developer-edition"
 cask 'font-fantasque-sans-mono-nerd-font'
 
 # Mac OS Mods and Imrovments
-cask 'alt-tab'        # Much better alt-tab window switcher
 cask 'stats'          # System resource usage in menubar
 cask 'aldente'        # Battery manager
 
