@@ -23,10 +23,10 @@ export CURL_HOME="${XDG_CONFIG_HOME}/curl"
 export DOCKER_CONFIG="${XDG_CONFIG_HOME}/docker"
 export TMUX_PLUGIN_MANAGER_PATH="${XDG_DATA_HOME}/tmux/plugins"
 
-# Encodings, languges and misc settings
-export LANG='en_GB.UTF-8';
-export PYTHONIOENCODING='UTF-8';
-export LC_ALL='C';
+
+export LANG='en_US.UTF-8'
+export LC_ALL='en_US.UTF-8'
+export PYTHONIOENCODING='UTF-8'
 
 # User Binaries
 if [[ -d "$XDG_BIN_HOME" ]]; then
