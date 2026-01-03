@@ -27,12 +27,14 @@ cask 'docker-desktop'
 cask 'visual-studio-code' # Code editor
 cask 'kitty'              # GPU Accelerated Terminal Emulator
 cask 'karabiner-elements' # Karabiner Elements
-# cask 'intellij-idea'      # Code editpr for java
-# cask 'pycharm'            # Code editor py, ipynb
+cask 'intellij-idea'      # Code editpr for java
+cask 'pycharm'            # Code editor py, ipynb
 cask 'zotero'
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
+brew 'jdk@17'
+brew 'jdk@21'
 brew 'rustup'
 brew 'uv'
 # TODO fix other language configurations later
