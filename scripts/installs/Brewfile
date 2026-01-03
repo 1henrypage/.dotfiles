@@ -26,8 +26,8 @@ cask 'postman'        # HTTP API testing app
 cask 'visual-studio-code' # Code editor
 cask 'kitty'              # GPU Accelerated Terminal Emulator
 cask 'karabiner-elements' # Karabiner Elements
-cask 'intellij-idea'      # Code editpr for java
-cask 'pycharm'            # Code editor py, ipynb
+# cask 'intellij-idea'      # Code editpr for java
+# cask 'pycharm'            # Code editor py, ipynb
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
@@ -55,5 +55,5 @@ cask 'font-fantasque-sans-mono-nerd-font'
 
 # Mac OS Mods and Imrovments
 cask 'alt-tab'        # Much better alt-tab window switcher
-cask 'stats'          # System resource usage in menubar
 
+cask 'stats'          # System resource usage in menubar
