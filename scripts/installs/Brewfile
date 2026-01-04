@@ -52,6 +52,7 @@ cask 'iina'          # Media player
 cask 'signal'         # Link to encrypted mobile messenger
 cask 'whatsapp'       # Luddite messenger
 cask 'protonvpn'      # Client app for ProtonVPN
+cask 'mattermost'     # University communication
 
 # Browsers
 cask "firefox@developer-edition"
