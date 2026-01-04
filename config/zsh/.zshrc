@@ -22,15 +22,9 @@ if [[ -d $zsh_dir ]]; then
   done
 fi
 
-# Add Zoxide (for cd, quick jump) to shell
-if hash zoxide 2> /dev/null; then
-    eval "$(zoxide init zsh)"
-fi
-
-# Add starship 
-if hash starship 2> /dev/null; then
-   eval "$(starship init zsh)"
-fi
+eval "$(zoxide init zsh)"
+eval "$(starship init zsh)"
+eval "$(jenv init -)"
 
 
 
