@@ -50,6 +50,7 @@ brew 'openssl'
 cask 'spotify', args: { require_sha: false } # Propietary music streaming
 cask 'iina'          # Media player
 cask 'signal'         # Link to encrypted mobile messenger
+cask 'discord'        # Discord
 cask 'whatsapp'       # Luddite messenger
 cask 'protonvpn'      # Client app for ProtonVPN
 cask 'mattermost'     # University communication
