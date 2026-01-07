@@ -3,7 +3,7 @@
 echo "Configuring Dock..."
 
 # Dock size
-defaults write com.apple.dock tilesize -int 48
+defaults write com.apple.dock tilesize -int 64
 
 # Auto-hide Dock
 defaults write com.apple.dock autohide -bool true
@@ -19,7 +19,7 @@ defaults write com.apple.dock orientation -string "bottom"
 defaults write com.apple.dock minimize-to-application -bool true
 
 # Show only open apps
-defaults write com.apple.dock static-only -bool false
+defaults write com.apple.dock static-only -bool true
 
 # Disable recent apps
 defaults write com.apple.dock show-recents -bool false
