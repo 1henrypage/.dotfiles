@@ -30,7 +30,8 @@ cask 'karabiner-elements' # Karabiner Elements
 cask 'intellij-idea'      # Code editpr for java
 cask 'pycharm'            # Code editor py, ipynb
 cask 'sublime-text'       # Text editor, will migrate off this soon
-cask 'zotero'
+cask 'zotero'             # Paper/Citations manager
+cask 'claude-code'
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
