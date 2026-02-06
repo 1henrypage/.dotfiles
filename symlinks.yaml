@@ -13,7 +13,7 @@
     ~/.zshrc: { path: config/zsh/.zshrc, force: true }
     ~/.tmux/plugins/tpm: lib/tpm
     ~/.tmux.conf: config/tmux/tmux.conf
-    ~/.claude: config/claude
+    ~/.claude: { path: config/claude, force: true }
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/kitty: config/kitty
