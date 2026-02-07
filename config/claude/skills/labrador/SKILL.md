@@ -240,3 +240,6 @@ public class LibradorConfig extends LibradorConfigAdapter {
 - **LabraDoor connection errors**: Check `application.yml` — correct `labrador.core.url`, apiKey, apiSecret. Ensure LabraCore runs on port 8082. If you can't get core running just stop and delegate to user, Henry should already have it running in background.
 - **Flux/Mono NPE**: Null-check `.block()` results. Use `Mono.justOrEmpty()` in mocks.
 - **H2 vs PostgreSQL**: Test with both if using native queries. H2 doesn't support all PG features.
+
+## COMMIT PROCESS
+DON'T CO-SIGN COMMITS AND don't write descriptions in commits. Keep it only to the message and follow conventional commits.
