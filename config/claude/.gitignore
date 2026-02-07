@@ -9,3 +9,5 @@ plugins/
 projects/
 tasks/
 todos/
+
+stats-cache.json
