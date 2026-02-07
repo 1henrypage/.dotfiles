@@ -1,0 +1,11 @@
+# Claude .gitignore
+cache/
+debug/
+file-history/
+history.jsonl
+paste-cache/
+plans/
+plugins/
+projects/
+tasks/
+todos/
