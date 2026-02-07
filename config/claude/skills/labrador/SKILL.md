@@ -241,5 +241,6 @@ public class LibradorConfig extends LibradorConfigAdapter {
 - **Flux/Mono NPE**: Null-check `.block()` results. Use `Mono.justOrEmpty()` in mocks.
 - **H2 vs PostgreSQL**: Test with both if using native queries. H2 doesn't support all PG features.
 
-## COMMIT PROCESS
-DON'T CO-SIGN COMMITS AND don't write descriptions in commits. Keep it only to the message and follow conventional commits.
+## Testing & Committing & Pushing
+- Each project comes with a gradle wrapper. Make sure to run `./gradlew spotlessApply` before running `./gradlew test` or even `./gradlew build` or even pushing.
+- DON'T CO-SIGN COMMITS AND don't write descriptions in commits. Keep it only to the message and follow conventional commits.
