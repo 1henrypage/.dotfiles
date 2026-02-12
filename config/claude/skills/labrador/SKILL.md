@@ -1,12 +1,14 @@
 ---
 name: labrador
 description: >
-  Skill for working on the Labrador suite of Spring Boot educational software at TU Delft EIP.
+  Skill for working on the Labrador suite of educational software at TU Delft EIP.
   Covers: LabraCore (central API/database), Librador (shared library), Queue (lab session queueing),
-  TAM (teaching assistant management), and GitBull (GitLab management). Use when writing features,
-  services, controllers, repositories, tests, migrations, or reviewing code for any Labrador repo.
-  Triggers on mentions of: labracore, librador, labradoor, queue, tam, gitbull, labrador,
-  or any EIP/TU Delft educational software development task involving Spring Boot + Thymeleaf + Gradle.
+  TAM (teaching assistant management), GitBull (GitLab management), and Frontend (shared UI component library).
+  Use when writing features, services, controllers, repositories, tests, migrations, components,
+  or reviewing code for any Labrador repo.
+  Triggers on mentions of: labracore, librador, labradoor, queue, tam, gitbull, frontend, chihuahui,
+  labrador, component library, UI components, or any EIP/TU Delft educational software development task
+  involving Spring Boot + Thymeleaf + Gradle or the shared frontend component library.
 ---
 
 # Labrador Development Skill
@@ -23,6 +25,7 @@ Labrador is a suite of Spring Boot applications for educational software at TU D
 | **Queue** | Digital queueing for lab sessions, supports Jitsi video links | `eip/labrador/queue` |
 | **TAM** | TA recruitment, contracts, scheduling (uses Gurobi optimizer) | `eip/labrador/tam` |
 | **GitBull** | GitLab repo management, student group repos, statistics | `eip/labrador/gitbull` |
+| **Frontend (ChihuahUI)** | Shared UI component library consumed by all Labrador apps | `eip/labrador/frontend` |
 
 ## Per-Repo References
 
@@ -32,6 +35,7 @@ Load the appropriate reference file based on which repo is being worked on:
 - **Queue**: See [references/queue.md](references/queue.md)
 - **TAM**: See [references/tam.md](references/tam.md)
 - **GitBull**: See [references/gitbull.md](references/gitbull.md)
+- **Frontend**: See [references/frontend.md](references/frontend.md)
 
 If a task spans multiple repos (e.g. adding an entity to LabraCore + consuming it in Queue), load all relevant references.
 
@@ -40,7 +44,7 @@ If a task spans multiple repos (e.g. adding an entity to LabraCore + consuming i
 - **Language**: Java 21 
 - **Framework**: Spring Boot (Web, Security, Data JPA, Webflux for LabraDoor calls)
 - **Build**: Gradle (Kotlin DSL — `build.gradle.kts`)
-- **Frontend**: Thymeleaf templates with server-side rendering
+- **Frontend**: Thymeleaf templates with server-side rendering, **ChihuahUI** shared component library
 - **Database**: PostgreSQL (prod), H2 (dev/test), Liquibase migrations
 - **Auth**: SAML2 SSO via LabraDoor, in-memory auth for dev
 - **Testing**: JUnit 5, Mockito, Spring Boot Test, MockMvc
@@ -79,9 +83,12 @@ List<Edition> findEditionsBetween(Set<Long> ids, LocalDateTime start, LocalDateT
 - Pure data only. No business logic.
 - If constructing a DTO requires a service/repository call, do it in a service method.
 
-### Thymeleaf
+### Thymeleaf & ChihuahUI
 - Never call expensive bean methods from templates — precalculate in the controller.
 - Use `th:unless` for else-conditions, not `th:if="${not condition}"`.
+- **Always use ChihuahUI components** when building or modifying UI. Never create custom buttons, inputs, banners, toasts, etc. when a ChihuahUI component exists. See [references/frontend.md](references/frontend.md) for the full component inventory.
+- Use ChihuahUI's `data-type` and `data-style` attributes for component variants — don't add custom CSS for things ChihuahUI already handles (e.g. error/accept/warning states).
+- Use Font Awesome icons (`fa-solid fa-*`) consistent with ChihuahUI conventions.
 
 ## Writing Features — Standard Pattern
 
