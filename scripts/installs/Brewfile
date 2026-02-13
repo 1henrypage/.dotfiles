@@ -20,7 +20,7 @@ brew 'unzip'        # Unzip
 brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
 brew 'starship'     # Prompt
-# brew 'rclone'       # Google drive THIS DOESN'T WORK ON MAC YOU NEED TO USE THE BINARY 
+brew 'rclone'       # Google drive 
 
 # CASKS
 cask 'postman'        # HTTP API testing app 
@@ -33,6 +33,7 @@ cask 'pycharm'            # Code editor py, ipynb
 cask 'zotero'             # Paper/Citations manager
 cask 'sublime-text'       # Text editor, will migrate off this soon
 cask 'claude-code'
+cask 'macfuse'            # This is required for rclone on mac
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
