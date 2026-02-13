@@ -11,11 +11,21 @@
         <string>mount</string>
         <string>dev:zotero_permanent</string>
         <string>/Users/henry/zotero_permanent</string>
-        <string>--daemon</string>
+        <string>--vfs-cache-mode</string>
+        <string>writes</string>
     </array>
 
     <key>RunAtLoad</key>
     <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
 
     <key>StandardOutPath</key>
     <string>/Users/henry/Library/Logs/rclone-zotero.log</string>
