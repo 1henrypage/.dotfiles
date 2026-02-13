@@ -153,17 +153,86 @@ public class MyEntityController {
 
 ## Writing Tests
 
+### Test Naming Convention
+CRITICAL: Test method names must be **verbose and descriptive** without the "test" prefix.
+
+**Good examples:**
+```java
+@Test
+void updateLabChangesInMemoryLabObject() { ... }
+
+@Test
+void updateLabIncludesAssignmentsIfNonEmpty() { ... }
+
+@Test
+void setUpEditionRedirectsToStudentsWhenValidationSucceeds() { ... }
+
+@Test
+void canFinaliseReturnsTrueWhenAllRequiredStagesComplete() { ... }
+```
+
+**Bad examples:**
+```java
+@Test
+void testUpdateLab() { ... }  // ❌ Has "test" prefix, not descriptive
+
+@Test
+void test_update_lab_success() { ... }  // ❌ Has "test" prefix, uses underscores
+
+@Test
+void updateLab() { ... }  // ❌ Not descriptive enough
+```
+
+The test name should clearly describe what the test does and what the expected outcome is, forming a readable sentence.
+
+### Mockito Setup (JUnit 5)
+CRITICAL: Use `@ExtendWith(MockitoExtension.class)` for JUnit 5, NOT `MockitoAnnotations.openMocks()`.
+
+**Modern approach (JUnit 5):**
+```java
+@ExtendWith(MockitoExtension.class)
+class MyServiceTest {
+    @Mock private SomeRepository repository;
+    @Mock private SomeApi api;
+
+    private MyService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new MyService(repository, api);
+    }
+
+    @Test
+    void myMethodReturnsExpectedValueWhenInputValid() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        assertThat(service.myMethod(1L)).isEqualTo(expected);
+    }
+}
+```
+
+**Old approach (DON'T USE):**
+```java
+class MyServiceTest {
+    @Mock private SomeRepository repository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);  // ❌ Old JUnit 4 pattern
+    }
+}
+```
+
 ### Integration Tests
 ```java
 @Transactional
 @SpringBootTest(classes = TestApplication.class)
-public class MyServiceIntegrationTest {
+class MyServiceIntegrationTest {
 
     @Autowired private MyService myService;
     @Autowired private CourseControllerApi courseApi; // auto-mocked via ApiMocksConfig
 
     @Test
-    void testSomething() {
+    void getAllCoursesReturnsCoursesFromApi() {
         when(courseApi.getAllCourses()).thenReturn(Flux.just(someCourse));
         assertThat(myService.doThing()).isEqualTo(expected);
     }
@@ -176,18 +245,19 @@ Key rules:
 - Always mock LabraCore API calls — never send real HTTP in tests.
 - Use `@Transactional` for automatic rollback.
 - Stub reactive types with `Flux.just(...)` / `Mono.just(...)`.
+- Test methods use package-private visibility (no `public` modifier).
 
 ### Controller Tests (MockMvc)
 ```java
 @WebMvcTest(MyController.class)
 @Import({ApiMocksConfig.class})
-public class MyControllerTest {
+class MyControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @MockBean private MyService myService;
 
     @Test
-    void getPage() throws Exception {
+    void getPageReturnsViewWithEntityAttribute() throws Exception {
         when(myService.getRequired(1L)).thenReturn(someEntity);
         mockMvc.perform(get("/my-entity/1"))
             .andExpect(status().isOk())
@@ -195,6 +265,31 @@ public class MyControllerTest {
     }
 }
 ```
+
+### Unit Tests (Pure Mockito)
+```java
+@ExtendWith(MockitoExtension.class)
+class MyServiceTest {
+
+    @Mock private MyRepository repository;
+    @Mock private ExternalApi api;
+
+    private MyService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new MyService(repository, api);
+    }
+
+    @Test
+    void saveEntityPersistsToRepositoryAndReturnsId() {
+        MyEntity entity = new MyEntity();
+        when(repository.save(entity)).thenReturn(entity);
+
+        assertThat(service.save(entity)).isNotNull();
+        verify(repository).save(entity);
+    }
+}
 
 ## LabraDoor Integration Pattern
 

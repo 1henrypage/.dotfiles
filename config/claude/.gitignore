@@ -9,5 +9,6 @@ plugins/
 projects/
 tasks/
 todos/
+shell-snapshots/
 
 stats-cache.json
