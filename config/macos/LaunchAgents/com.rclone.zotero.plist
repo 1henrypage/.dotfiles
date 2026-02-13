@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rclone.zotero</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/rclone</string>
+        <string>mount</string>
+        <string>dev:zotero_permanent</string>
+        <string>/Users/henry/zotero_permanent</string>
+        <string>--daemon</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/henry/Library/Logs/rclone-zotero.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/henry/Library/Logs/rclone-zotero-error.log</string>
+</dict>
+</plist>

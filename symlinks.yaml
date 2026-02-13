@@ -31,6 +31,10 @@
     ~/.Brewfile:
       if: '[ `uname` = Darwin ]'
       path: scripts/installs/Brewfile
+    ~/Library/LaunchAgents/:
+      if: '[ `uname` = Darwin ]'
+      path: config/macos/LaunchAgents/*
+      glob: true
     
 # If not already present, create home directories
 - create:
