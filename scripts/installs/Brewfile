@@ -20,7 +20,6 @@ brew 'unzip'        # Unzip
 brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
 brew 'starship'     # Prompt
-brew 'rclone'       # Google drive 
 
 # CASKS
 cask 'postman'        # HTTP API testing app 
