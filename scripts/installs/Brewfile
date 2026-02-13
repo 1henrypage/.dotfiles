@@ -20,7 +20,7 @@ brew 'unzip'        # Unzip
 brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
 brew 'starship'     # Prompt
-brew 'rclone'       # Google drive
+# brew 'rclone'       # Google drive THIS DOESN'T WORK ON MAC YOU NEED TO USE THE BINARY 
 
 # CASKS
 cask 'postman'        # HTTP API testing app 
