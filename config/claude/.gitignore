@@ -10,5 +10,6 @@ projects/
 tasks/
 todos/
 shell-snapshots/
+telemetry/
 
 stats-cache.json

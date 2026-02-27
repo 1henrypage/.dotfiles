@@ -43,6 +43,9 @@ brew 'uv'
 brew 'node'
 # TODO fix other language configurations later
 
+# Misc
+brew 'tailscale'
+
 # DevOps
 brew 'container'         # Containers
 brew 'nmap'           # Port scanning
