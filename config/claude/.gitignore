@@ -11,5 +11,7 @@ tasks/
 todos/
 shell-snapshots/
 telemetry/
+backups/
 
 stats-cache.json
+mcp-needs-auth-cache.json

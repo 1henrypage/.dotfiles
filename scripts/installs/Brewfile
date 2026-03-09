@@ -32,6 +32,7 @@ cask 'pycharm'            # Code editor py, ipynb
 cask 'zotero'             # Paper/Citations manager
 cask 'sublime-text'       # Text editor, will migrate off this soon
 cask 'claude-code'
+cask 'claude'
 cask 'macfuse'            # This is required for rclone on mac
 
 # Development Langs, Compilers, Package Managers and SDKs
