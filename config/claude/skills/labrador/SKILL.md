@@ -316,7 +316,7 @@ public class MyApplication { ... }
 ```
 
 Config (application.yml):
-see ./src/main/resources/application.yml or ./src/main/resouces/application.template.yaml
+see ./src/main/resources/application.yaml or ./src/main/resouces/application.template.yaml (needs to be copied to application.yaml first)
 
 
 LibradorConfig:
@@ -335,6 +335,7 @@ public class LibradorConfig extends LibradorConfigAdapter {
 5. DTOs contain no business logic
 6. No expensive Thymeleaf bean calls
 7. `th:unless` used instead of `th:if="${not ...}"`
+8. packagename and directory structure to be kept in sync (src/main/java/nl/tudelft/gitbull/service/setup/SetupService.java needs to be in package nl.tudelft.gitbull.service.setup)
 10. Liquibase migrations are additive (no destructive changes to existing changesets)
 
 ## Debugging Tips
