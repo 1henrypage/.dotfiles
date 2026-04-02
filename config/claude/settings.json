@@ -1,5 +1,4 @@
 {
-  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -12,5 +11,6 @@
         ]
       }
     ]
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }
