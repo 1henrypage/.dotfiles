@@ -1,6 +1,6 @@
 [user]
-    name = Henry Page
-    email = dev@henrypage.com
+	name = Henry Page
+	email = dev@henrypage.com
 
 [init]
     defaultBranch = main
