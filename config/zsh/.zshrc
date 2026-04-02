@@ -24,7 +24,6 @@ fi
 
 eval "$(zoxide init zsh)"
 eval "$(starship init zsh)"
-eval "$(wt init zsh)"
 eval "$(jenv init -)"
 
 
