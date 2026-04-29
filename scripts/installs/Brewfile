@@ -8,6 +8,7 @@ cask_args appdir: '~/Applications', require_sha: true
 # CLI Essentials
 brew 'git'          # Version controll
 brew 'tmux'         # Term multiplexer
+brew 'wget'         # wget
 
 # CLI Basics
 # brew 'fzf'          # Fuzzy file finder and filtering
