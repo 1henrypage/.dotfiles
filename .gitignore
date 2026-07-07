@@ -1,3 +1,7 @@
 *.zwc
 lib/
 .claude/
+config/claude/daemon/
+config/claude/image-cache/
+config/claude/jobs/
+config/claude/.last-cleanup

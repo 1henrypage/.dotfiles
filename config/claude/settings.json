@@ -3,17 +3,15 @@
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-6"
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8"
   },
-  "model": "opusplan",
-  "hooks": {
-    
-  },
+  "model": "opus",
+  "hooks": {},
   "enabledPlugins": {
     "lua-lsp@claude-plugins-official": true
   },
   "effortLevel": "high",
-  "skipDangerousModePermissionPrompt": true,
-  "advisorModel": "opus"
+  "showClearContextOnPlanAccept": true,
+  "skipDangerousModePermissionPrompt": true
 }
