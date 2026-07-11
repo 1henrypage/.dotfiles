@@ -137,7 +137,7 @@ bob use v0.11.5
 
 # --- Apply Preferences ---
 echo "Applying ZSH, Vim, TMUX plugins..."
-[ -f "$XDG_DATA_HOME/tmux/tpm" ] && sh "$XDG_DATA_HOME/tmux/tpm/bin/install_plugins"
+[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ] && "$HOME/.tmux/plugins/tpm/bin/install_plugins"
 [ -x "$(command -v zsh)" ] && /bin/zsh -i -c "antigen update && antigen-apply"
 
 # --- Finishing Up ---

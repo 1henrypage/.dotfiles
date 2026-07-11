@@ -12,9 +12,10 @@ brew 'tmux'         # Term multiplexer
 brew 'wget'         # wget
 
 # CLI Basics
-# brew 'fzf'          # Fuzzy file finder and filtering
+brew 'fzf'          # Fuzzy file finder and filtering
 brew 'jq'           # JSON parser, output and query files
 brew 'ripgrep'      # Searching within files (better grep)
+brew 'fd'           # Fast find (better find), used by sesh picker
 brew 'tlrc'         # Community-maintained docs (better man)
 brew 'tree'         # Directory listings as tree structure
 brew 'trash-cli'    # Record and restore removed files
@@ -23,6 +24,12 @@ brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
 brew 'starship'     # Prompt
 brew 'beads'        # Agentic issue tracker
+brew 'sesh'         # Smart tmux session manager (zoxide-backed)
+brew 'lazygit'      # Terminal UI for git (tmux popup)
+brew 'bc'           # Arbitrary-precision calc (tokyo-night-tmux widgets)
+brew 'gawk'         # GNU awk (tokyo-night-tmux widgets)
+brew 'bash'         # bash 5+; Apple's 3.2 lacks assoc arrays -> tokyo-night-tmux goes all-orange
+brew 'coreutils'    # GNU coreutils (tokyo-night-tmux widgets)
 
 # CASKS
 cask 'postman'        # HTTP API testing app 
@@ -66,6 +73,7 @@ cask 'discord'        # Discord
 cask 'whatsapp'       # Luddite messenger
 cask 'protonvpn'      # Client app for ProtonVPN
 cask 'telegram'       # Telegram
+# OpenWhispr (voice-to-text) has no cask; installed out-of-band via scripts/macos/macos-openwhispr.sh
 
 # Browsers
 cask "firefox@developer-edition"

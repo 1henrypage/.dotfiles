@@ -1,6 +1,8 @@
 *.zwc
 lib/
-.claude/
+.claude/*
+!.claude/CLAUDE.md
+!.claude/ARCHITECTURE.md
 config/claude/daemon/
 config/claude/image-cache/
 config/claude/jobs/
