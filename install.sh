@@ -131,9 +131,10 @@ if command_exists rustup; then
     rustup default stable 
 fi
 
-# Neovim using 0.10.4
-curl -fsSL https://raw.githubusercontent.com/MordechaiHadad/bob/master/scripts/install.sh | bash
-bob use v0.11.5
+# Cross-platform curl/script-based installs (tools with no brew/pacman formula)
+echo "Running cross-platform tool installers..."
+tools_script="$SRC_DIR/scripts/installs/tools/install.sh"
+chmod +x "$tools_script" && "$tools_script"
 
 # --- Apply Preferences ---
 echo "Applying ZSH, Vim, TMUX plugins..."

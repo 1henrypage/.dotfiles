@@ -41,7 +41,9 @@ A clean machine comes up like this:
      shebang**. So the untracked WIP `macos-openwhispr.sh` and the `bash`-shebang'd
      `macos-power.sh` both get executed under `sh`.
    - Post-install (runs on all platforms, after the Darwin block): `rustup default stable` if
-     rustup exists (`:129-132`); `curl … bob/install.sh | bash` then `bob use v0.11.5` (`:135-136`);
+     rustup exists (`:129-132`); then `scripts/installs/tools/install.sh` — the cross-platform
+     twin of the `scripts/macos/` glob-runner, globbing `tool-*.sh` (currently `tool-neovim.sh`,
+     which is the bob/`v0.11.5` install, and `tool-no-mistakes.sh`) and running each under `sh`;
      `/bin/zsh -i -c "antigen update && antigen-apply"` (`:141`).
    - Always prints the green **"✨ Dotfiles configured successfully"** banner and `exit 0`
      (`:153-154`) — even if earlier steps failed.
@@ -179,8 +181,6 @@ the working tree**. Don't `git add -A` here — you'll try to commit live sessio
 Documented so an agent neither trusts them nor "helpfully" fixes working things. **Verify before
 relying; fixing them is out of scope for a docs task** — flag to the user instead.
 
-- **Stale version comment.** `install.sh:134` comment says Neovim "0.10.4" but the pin one line
-  down is `bob use v0.11.5` (`:136`).
 - **`.zshenv` PATH line is fragile.** `.zshenv:52` unconditionally runs
   `rustup show active-toolchain` inside a PATH assignment — it **errors on a machine without
   rustup** (the guarded variant right below is commented out, `:54-55`). `.zshenv` also uses

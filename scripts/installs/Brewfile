@@ -62,7 +62,8 @@ brew 'tailscale'
 brew 'container'         # Containers
 brew 'nmap'           # Port scanning
 cask 'wireshark'      # Network analyzer + packet capture       # Cryptography and SSL/TLS Toolkit
-brew 'openssl'    
+brew 'openssl'
+# no-mistakes (AI git push-gate) has no brew formula; installed via scripts/installs/tools/tool-no-mistakes.sh
 
 # Media
 brew 'ffmpeg'        # Video/audio converter
