@@ -11,7 +11,7 @@
   "enabledPlugins": {
     "lua-lsp@claude-plugins-official": true
   },
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true
 }

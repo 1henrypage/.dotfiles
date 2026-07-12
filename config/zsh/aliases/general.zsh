@@ -91,7 +91,7 @@ alias ff='find . -type f -name' # Find a file by name within current directory
 # Command line history
 alias h='history' # Shows full history
 alias h-search='fc -El 0 | grep' # Searchses for a word in terminal history
-alias top-history='history 0 | awk '{print $2}' | sort | uniq -c | sort -n -r | head' 
+alias top-history="history 0 | awk '{print \$2}' | sort | uniq -c | sort -n -r | head"
 alias histrg='history -500 | rg' # Rip grep search recent history
 
 # Command line head / tail shortcuts
@@ -110,6 +110,7 @@ alias ports='netstat -tulanp' # Show open ports
 
 # App Specific
 if command_exists code ; then; alias vsc='code .'; fi # Launch VS Code in current dir
+if command_exists claude ; then; alias cld='claude --dangerously-skip-permissions --model opusplan --effort xhigh'; fi # Claude Code with skip perms
 
 # Alias for install script
 alias dotfiles="${DOTFILES_DIR:-$HOME/Documents/config/dotfiles}/install.sh"
