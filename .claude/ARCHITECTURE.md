@@ -63,6 +63,8 @@ removes dangling links on every run.
 | `~/.tmux/plugins/tpm` | `lib/tpm` | submodule |
 | `~/.tmux.conf` | `config/tmux/tmux.conf` | |
 | `~/.claude` | `config/claude` | **`force: true`** (`:16`) — live global Claude Code state |
+| `~/.claude/skills` | `config/skills` | **`force: true`** — Claude Code skills |
+| `~/.agents/skills` | `config/skills` | **`force: true`** — Codex CLI personal skills; same physical files as above |
 | `${XDG_CONFIG_HOME}/zsh` | `config/zsh` | |
 | `${XDG_CONFIG_HOME}/nvim` | `config/nvim` | submodule |
 | `${XDG_CONFIG_HOME}/kitty` | `config/kitty` | |
@@ -152,9 +154,13 @@ Load order (interactive): `.zshenv` (always) → `.zshrc` sources `aliases/*.zsh
 
 ## 5. `config/claude/` internals (the live global `~/.claude`)
 
-**Tracked** (11 files — `git ls-files config/claude`): `.gitignore`, `settings.json`,
-`hooks/notify.sh`, `commands/.gitkeep`, `skills/.gitkeep`, and `skills/labrador/` (`SKILL.md` +
-`references/{frontend,gitbull,labracore,queue,tam}.md`).
+**Tracked** (7 files — `git ls-files config/claude`): `.gitignore`, `CLAUDE.md`, `WRITING.md`,
+`settings.json`, `hooks/notify.sh`, `commands/.gitkeep`. `skills/` is **no longer a physical
+directory here** — skills moved to the tool-neutral `config/skills/` (`labrador/` and
+`no-mistakes/`), symlinked in via two new `symlinks.yaml` entries: `~/.claude/skills` and
+`~/.agents/skills` (Codex CLI's personal skills path). One physical copy on disk, shared across
+both tools. Verify with `git ls-files config/claude` and `git ls-files config/skills` rather than
+trusting a stale doc.
 
 Notable `settings.json`:
 - `env`: `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1`, `CLAUDE_CODE_DISABLE_1M_CONTEXT=1`,
