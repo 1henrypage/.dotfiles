@@ -11,6 +11,7 @@
   If something clearly looks off, even if it is not directly related to what you are doing, try to get it fixed along the way.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness. YOU ARE WRITING FOR A DATABRICKS BIG TECH ENGINEER. ENGINEERING EXCELLENCE IS OF UTMOST IMPORTANCE! APPLY ALL BEST PRACTICES!
   If you see one, even if it is not caused by what you are working on right now, still get it fixed. Or if it's really not in scope of the current issue, inform henry about it.
+- Never `git push` and never create/checkout a new branch unless explicitly told to do so.
 
 ## Writing content
 - Read WRITING.md for writing rules. You should implicitly know when to follow these rules based on the task at hand (if it is clearly writing)

@@ -24,6 +24,7 @@ brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
 brew 'starship'     # Prompt
 brew 'beads'        # Agentic issue tracker
+brew 'omnigent-ai/tap/omnigent' # Meta-harness orchestrating AI coding agents (Claude Code, Codex, Cursor, etc.)
 brew 'sesh'         # Smart tmux session manager (zoxide-backed)
 brew 'lazygit'      # Terminal UI for git (tmux popup)
 brew 'bc'           # Arbitrary-precision calc (tokyo-night-tmux widgets)
@@ -69,6 +70,7 @@ brew 'openssl'
 brew 'ffmpeg'        # Video/audio converter
 cask 'spotify', args: { require_sha: false } # Propietary music streaming
 cask 'iina'          # Media player
+cask 'transmission'   # Torrent client
 cask 'signal'         # Link to encrypted mobile messenger
 cask 'discord'        # Discord
 cask 'whatsapp'       # Luddite messenger
