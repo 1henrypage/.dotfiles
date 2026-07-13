@@ -115,3 +115,19 @@ if command_exists claude ; then; alias cld='claude --dangerously-skip-permission
 # Alias for install script
 alias dotfiles="${DOTFILES_DIR:-$HOME/Documents/config/dotfiles}/install.sh"
 alias dots="dotfiles"
+
+# Wrap npx skills so it always targets our canonical skills source, config/skills, and
+# writes plain files there instead of npx skills' own internal symlink fan-out (buggy
+# against directories we've already symlinked ourselves, see symlinks.yaml).
+# ~/.claude/skills and ~/.agents/skills are force-symlinked to config/skills, so global
+# scope (-g) resolves straight through to it regardless of cwd. No --path flag exists on
+# npx skills, so this is the equivalent. Extra args/flags are forwarded after the subcommand.
+dskills() {
+  local cmd="$1"
+  if [ -z "$cmd" ]; then
+    npx skills --help
+    return
+  fi
+  shift
+  npx skills "$cmd" -g --copy "$@"
+}
