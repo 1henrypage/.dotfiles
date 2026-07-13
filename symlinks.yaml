@@ -14,6 +14,8 @@
     ~/.tmux/plugins/tpm: lib/tpm
     ~/.tmux.conf: config/tmux/tmux.conf
     ~/.claude: { path: config/claude, force: true }
+    ~/.claude/skills: { path: config/skills, force: true }
+    ~/.agents/skills: { path: config/skills, force: true }
     ~/AGENTS.md: config/claude/CLAUDE.md
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
