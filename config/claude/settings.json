@@ -13,5 +13,6 @@
   },
   "effortLevel": "medium",
   "showClearContextOnPlanAccept": true,
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true
 }
