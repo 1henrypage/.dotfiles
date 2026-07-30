@@ -1,0 +1,8 @@
+# omnigent .gitignore
+#
+# config/omnigent/plans/ is the on-disk target of the ~/.omnigent/plans
+# symlink (see symlinks.yaml). Generated plan documents are per-machine,
+# point-in-time artifacts, not source - don't track their contents, only
+# the directory itself.
+plans/*
+!plans/.gitkeep

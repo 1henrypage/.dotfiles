@@ -111,7 +111,7 @@ alias ports='netstat -tulanp' # Show open ports
 # App Specific
 if command_exists code ; then; alias vsc='code .'; fi # Launch VS Code in current dir
 if command_exists claude ; then; alias cld='claude --dangerously-skip-permissions --model opusplan --effort xhigh'; fi # Claude Code with skip perms
-if command_exists omnigent ; then; alias og='omnigent claude --dangerously-skip-permissions --model opus --effort xhigh'; fi # Claude Code via Omnigent terminal, skip perms
+if command_exists omnigent ; then; alias og='omnigent claude --dangerously-skip-permissions --model opusplan --effort xhigh'; fi # Claude Code via Omnigent terminal, skip perms
 
 # Alias for install script
 alias dotfiles="${DOTFILES_DIR:-$HOME/Documents/config/dotfiles}/install.sh"
