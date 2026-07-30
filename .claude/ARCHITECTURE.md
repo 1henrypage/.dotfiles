@@ -65,6 +65,7 @@ removes dangling links on every run.
 | `~/.claude` | `config/claude` | **`force: true`** (`:16`) — live global Claude Code state |
 | `~/.claude/skills` | `config/skills` | **`force: true`** — Claude Code skills |
 | `~/.agents/skills` | `config/skills` | **`force: true`** — Codex CLI personal skills; same physical files as above |
+| `~/.omnigent/plans` | `config/omnigent/plans` | no `force` — see §2a, `~/.omnigent` itself is untouched |
 | `${XDG_CONFIG_HOME}/zsh` | `config/zsh` | |
 | `${XDG_CONFIG_HOME}/nvim` | `config/nvim` | submodule |
 | `${XDG_CONFIG_HOME}/kitty` | `config/kitty` | |
@@ -81,6 +82,19 @@ removes dangling links on every run.
 there rather than `/Applications`.
 
 The commented-out `yabairc` block (`:28-30`) is dormant.
+
+### 2a. `config/omnigent/` — only the `plans/` subdir is claimed
+
+Unlike `~/.claude`, `~/.omnigent` is **not** force-symlinked wholesale to a `config/omnigent`
+mirror. `~/.omnigent` holds live daemon/session state (`chat.db`, `daemons/`, `logs/`,
+`artifacts/`, `config.yaml`) that must never be `rm`'d the way `force: true` would. Instead only
+`~/.omnigent/plans` (a subdir omnigent itself never creates) is symlinked to
+`config/omnigent/plans/`, giving the `plan` skill (`config/skills/plan/SKILL.md`) a stable,
+per-machine-persistent, dotfiles-tracked place to write planning-mode output. Generated plan
+files themselves are gitignored (`config/omnigent/.gitignore`); only the directory (via
+`plans/.gitkeep`) is tracked. The skill writes there with `sys_os_shell`/plain shell redirection,
+never a sandboxed file-write tool — those are typically confined to the caller's project
+workspace and can't reach a `~/...` path outside it.
 
 ---
 

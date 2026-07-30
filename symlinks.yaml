@@ -16,6 +16,13 @@
     ~/.claude: { path: config/claude, force: true }
     ~/.claude/skills: { path: config/skills, force: true }
     ~/.agents/skills: { path: config/skills, force: true }
+    # omnigent's own runtime dir (~/.omnigent) holds live daemon/session
+    # state (chat.db, daemons/, logs/, artifacts/) we must never touch, so
+    # unlike ~/.claude it is NOT force-symlinked wholesale. Only the plans/
+    # subdir - which omnigent itself does not create - is claimed, so the
+    # PLAN skill's output persists in dotfiles across machines without any
+    # risk of clobbering existing runtime data.
+    ~/.omnigent/plans: config/omnigent/plans
     ~/AGENTS.md: config/claude/CLAUDE.md
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
