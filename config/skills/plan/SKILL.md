@@ -1,107 +1,171 @@
 ---
 name: plan
-description: Omnigent's planning-mode skill - before touching any code, fan out a large wave of parallel read-only explore/search sub-agents to map the codebase, synthesize their findings into a single written plan document, save it under ~/.omnigent/plans, and stop for human approval before any implementation begins. Use when the user asks to plan first, wants a plan before code, says "don't code yet", "just plan this out", "come up with a plan", invokes /plan, or is handing over a feature/refactor/bugfix big enough to deserve a written plan before work starts.
+description: Planning-mode skill - before touching any code, fan out parallel read-only explorers to map the codebase, grill the human through the task decomposition decision-by-decision, then write a plan whose task breakdown is a parallelism-maximized dependency graph (waves of disjoint tasks, explicit merger/scribe/adversarial-review tasks, roles from agent-roles) ready for /swarm to execute as a beads epic. Saves the plan + graph artifact under ~/.omnigent/plans and stops for human approval. Use when the user asks to plan first, wants a plan before code, says "don't code yet", "just plan this out", "come up with a plan", invokes /plan, or hands over a feature/refactor/bugfix big enough to deserve a written plan.
 user-invocable: true
 ---
 
 # plan
 
-`plan` is omnigent's answer to Claude Code's built-in planning mode, built for an
-orchestrator that has sub-agents instead of a single context window: it doesn't
-investigate alone, it fans a large wave of parallel **read-only** explorers out
-over the problem, then turns their reports into one written plan the human signs
-off on before any code changes happen.
+Planning mode for an orchestrator with sub-agents: fan a wave of parallel
+**read-only** explorers over the problem, grill the human on the decomposition,
+then produce a plan the human signs off on before any code changes happen. The
+plan's task breakdown is not a to-do list - it is a dependency graph engineered
+for maximum parallel execution, which `/swarm` later materializes as a beads
+epic and runs MapReduce-style across cheap models.
 
 This skill produces a plan and stops. It never edits source, never opens a PR,
-and never dispatches an `implement` sub-agent. Implementation is a separate,
-later step the human explicitly triggers (typically the `fanout` skill, one
-sub-agent per task in the approved plan).
+never creates beads issues, and never dispatches an implementer. Execution is a
+separate, later step the human explicitly triggers with `/swarm`.
 
-## When this needs a dispatch-capable agent
+## Fan-out is harness-agnostic
 
-Fan-out requires an agent with sub-agent dispatch (e.g. `sys_session_send`
-against `explore`/`search`-capable workers - this is what `polly` and similar
-omnigent orchestrators have). If the running agent has no sub-agents, skip
-straight to "Solo fallback" below rather than pretending to fan out. If anything goes wrong, stop and notify the user.
+- Under an omnigent orchestrator with sub-agent dispatch (`sys_session_send`
+  against `explore`/`search` workers): fan out that way.
+- Under Claude Code natively: fan out with parallel `Explore` subagents.
+- Neither available: skip to "Solo fallback" below rather than pretending to
+  fan out. If anything goes wrong, stop and notify the user.
+
+Explorer role defaults (model/effort) come from the `agent-roles` skill.
 
 ## Process
 
-1. **Decompose the ask into investigation angles**, not into implementation
-   tasks. For a feature/refactor/bugfix, typical angles are: the relevant
-   existing code paths and their current behavior, the conventions/patterns
-   already used nearby, the data model / API surface touched, existing
-   tests and how they're structured, related past work (git log / prior
-   PRs), configuration and deployment concerns, and edge cases or failure
-   modes worth worrying about. Aim for wide coverage - many narrow angles
-   beat a few broad ones, because each one becomes an independently
+1. **Decompose the ask into investigation angles**, not implementation tasks.
+   Typical angles: the relevant existing code paths and behavior, nearby
+   conventions/patterns, the data model / API surface touched, existing tests
+   and their structure, related past work (git log / prior PRs), config and
+   deployment concerns, edge cases and failure modes. Aim wide - many narrow
+   angles beat a few broad ones, because each becomes an independently
    dispatchable explorer.
 
-2. **Fan out in one turn.** Dispatch one `explore` or `search` sub-agent per
-   angle, all in the same turn so they run in parallel (per your own
-   orchestration rules on fan-out). Each dispatch:
-   - gets a specific, narrowly-scoped question, not "look into the feature";
-   - gets a distinct, descriptive `title` (e.g. `explore-auth-middleware`,
-     `explore-existing-tests`, `explore-similar-past-prs`);
-   - is read-only (`purpose: "explore"` or `"search"`) - no explorer edits
-     anything or opens a PR.
-   Don't be shy about the count: an under-scoped plan is worse than a few
-   extra explorers. Re-fan-out with follow-up explorers if the first wave
-   surfaces contradictions, unanswered questions, or a bigger surface area
-   than expected.
+2. **Fan out in one turn.** One read-only explorer per angle, all dispatched
+   in the same turn so they run in parallel. Each gets a specific,
+   narrowly-scoped question and a distinct descriptive title. Don't be shy
+   about the count; re-fan-out if the first wave surfaces contradictions or a
+   bigger surface than expected.
 
-3. **Synthesize, don't re-investigate.** Collect every explorer's report from
-   the inbox and build the plan strictly from what they found - grounded,
-   the same way the `investigate` skill treats explorer reports as the
-   source of truth rather than your own guesses.
+3. **Synthesize, don't re-investigate.** Build the draft breakdown strictly
+   from what the explorers found - their reports are the source of truth, not
+   your own guesses.
 
-4. **Write the plan document** with this shape (adapt sections to the task,
-   but keep the gate at the end):
+4. **Grill the human on the decomposition** (new, mandatory unless the user
+   explicitly asks for a quick plan / no grilling): run a `/grilling` session
+   focused on *human decomposition decisions*, one question at a time with a
+   recommended answer per question. Walk past the human, decision by decision:
+   - the proposed task breakdown (is each task's scope right? anything
+     missing or mergeable?);
+   - the dependency edges (is each edge real, or an accidental
+     serialization?);
+   - the wave structure (could anything move earlier / run wider?);
+   - the role assignment per task (from the `agent-roles` table);
+   - the **integration base branch** the epic is cut from and merged back
+     into. Recommend `origin/HEAD`'s target, else `main`/`master` - but put
+     it to the human, because dual-branch setups (e.g. `development`) are a
+     policy no detection can infer.
+   Facts you can look up yourself - only the decisions go to the human.
+
+5. **Apply the breakdown rules for parallelism** to the agreed decomposition:
+   - Tasks get **disjoint file scopes**. If two tasks would touch the same
+     file, either merge them or re-cut the boundary; overlap is what makes
+     merges hard and serializes work.
+   - **Minimize graph depth, maximize width.** Every dependency edge must be
+     justified; an unjustified edge costs a whole wave of parallelism.
+   - Every fan-in bottleneck becomes an explicit **merger task** with one
+     `blocks` dependency per sibling task in its wave (never `waits-for` -
+     `bd dep add` doesn't offer it; fixed fan-ins are wired as plain `blocks`
+     edges).
+   - **Every wave N+1 task gets a `blocks` dep on wave N's merger task.**
+     Without this, `bd ready` releases the next wave while the merger is
+     still mutating the shared integration branch.
+   - A **scribe task** (docs/changelog) follows each merge, blocking on the
+     merger task.
+   - One final **adversarial-review task** blocks on everything else.
+   - Each task gets a role from `agent-roles` and a wave number. Merger,
+     scribe, and review tasks are type `task` with the role recorded in
+     `execution_agent_type` metadata (beads has no such issue types).
+
+6. **Write the plan document** (adapt sections to the task, keep the gate):
    - **Goal** - the outcome in the user's own terms.
-   - **Current state** - what the explorers found, cited to the relevant
-     files/areas.
-   - **Approach** - the chosen approach, briefly noting alternatives
-     considered and why they lost out.
-   - **Task breakdown** - an ordered/parallelizable list of concrete tasks,
-     each scoped the way you'd hand it to an `implement` sub-agent later
-     (this list is what a subsequent `fanout` run will consume).
-   - **Files / areas touched** - best-known list, per task.
-   - **Risks & open questions** - anything the explorers couldn't resolve,
-     or that needs a human call before implementation starts.
-   - **Verification strategy** - how each task's result will be checked
-     (tests, gates, manual E2E) once implemented.
-   - **Out of scope** - what this plan deliberately does not cover.
+   - **Current state** - what the explorers found, cited to files/areas.
+   - **Approach** - the chosen approach; alternatives briefly, and why they
+     lost.
+   - **Task breakdown** - the wave-by-wave graph: per task its title, scope
+     (files), acceptance criteria, role, wave; mergers/scribes/review listed
+     explicitly. This is what `/swarm` executes.
+   - **Files / areas touched** - per task; verify disjointness here.
+   - **Integration base branch** - the grilled decision from step 4; `/swarm`
+     cuts `epic/<id>` from it and hands the result back onto it.
+   - **Dependency graph preview** - the path to the HTML visualization (step
+     8).
+   - **Risks & open questions** - anything unresolved or needing a human
+     call.
+   - **Verification strategy** - the gates each task/wave must pass.
+   - **Out of scope.**
 
-5. **Persist it to `~/.omnigent/plans/`**, which this dotfiles repo symlinks
-   to `config/omnigent/plans/` (see `symlinks.yaml`) so plans survive across
-   sessions and machines. Use a filename like
-   `<yyyymmdd-HHMMSS>-<short-slug>.md`.
+7. **Write the machine-readable graph artifact** next to the plan:
+   `~/.omnigent/plans/<same-stem>.graph.json`, shaped for `bd create --graph`
+   (verified against bd 1.2.1; `/swarm` re-validates with `--dry-run` and
+   falls back to per-issue creation if the installed bd rejects it):
 
-   Use `sys_os_shell`, not `sys_os_write`/`sys_os_edit`/`sys_os_read` - those
-   three are confined to the current environment root (the project
-   workspace you're operating in), which is almost never `$HOME`, so they
-   cannot reach a `~/.omnigent/...` path. `sys_os_shell` has no such
-   confinement. For example:
-
+   ```json
+   {
+     "nodes": [
+       {"key": "epic", "type": "epic", "title": "<feature>",
+        "description": "<goal + plan path>",
+        "metadata": {"integration_base": "<base branch from step 4>"}},
+       {"key": "t1", "type": "task", "title": "...", "parent": "epic",
+        "description": "<full task content an implementer needs>",
+        "acceptance_criteria": "...", "priority": 1,
+        "metadata": {"execution_agent_type": "implementer",
+                      "execution_suggested_model": "<from agent-roles>",
+                      "execution_reasoning_effort": "<from agent-roles>",
+                      "execution_parallel_group": "1"}},
+       {"key": "m1", "type": "task", "title": "merge wave 1", "parent": "epic",
+        "metadata": {"execution_agent_type": "merger", "...": "..."}}
+     ],
+     "edges": [
+       {"from_key": "m1", "to_key": "t1", "type": "blocks"}
+     ]
+   }
    ```
+
+   Edge direction: **`from_key` is the dependent, `to_key` is its blocker**
+   (`m1` waits for `t1`). Field names matter: `acceptance_criteria` (not
+   `acceptance`), `from_key`/`to_key` (not `from`/`to`); unknown fields are
+   silently dropped with a warning.
+
+8. **Generate the HTML dependency preview**: a self-contained (no external
+   assets) HTML visualization at `/tmp/<slug>-graph.html` - waves as
+   horizontal layers, one node per task, mergers and the adversarial reviewer
+   visually highlighted, edges drawn between layers. Reference its path from
+   the plan doc so the human can eyeball the parallelization before
+   approving.
+
+9. **Persist to `~/.omnigent/plans/`** (symlinked to `config/omnigent/plans/`
+   in the dotfiles, so plans survive across sessions and machines). Filename:
+   `<yyyymmdd-HHMMSS>-<short-slug>.md` plus the `.graph.json` sibling. Under
+   omnigent, use `sys_os_shell` for these writes - `sys_os_write`/`sys_os_edit`
+   are confined to the environment root and cannot reach `~/.omnigent/...`:
+
+   ```sh
    mkdir -p ~/.omnigent/plans
    cat > ~/.omnigent/plans/20260722-143000-auth-refactor.md <<'EOF'
    # <plan content>
    EOF
    ```
 
-6. **Stop for approval.** Show the human a short summary (goal, chosen
-   approach, task count, biggest risk/open question) and the plan file's
-   path, then end your turn. Do not dispatch any `implement` sub-agent and
-   do not start the `fanout` skill in the same turn - planning mode's whole
-   point is a human checkpoint between "we know what to do" and "we're
-   doing it". Only proceed to implementation on an explicit go-ahead in a
-   later turn.
+10. **Stop for approval.** Show the human a short summary (goal, approach,
+    task count, wave count / max width, biggest risk) plus the plan file's
+    path and the HTML preview's path, then end your turn. State plainly: on
+    approval, `/swarm` will materialize this graph as a beads epic - **no
+    beads issues are created during planning**. (If the user said "no beads",
+    skip the graph artifact and say so.) Do not start execution in the same
+    turn - planning mode's whole point is a human checkpoint between "we know
+    what to do" and "we're doing it".
 
 ## Solo fallback
 
 No sub-agents available: do a single, appropriately scoped read-only pass
-yourself (files, `git log`, existing docs), then still write the plan
-document and stop for approval per steps 4-6. Say plainly in the plan's
-"Current state" section that it wasn't cross-checked by independent
-explorers, so the human knows it carries less confidence than a fanned-out
-plan.
+yourself (files, `git log`, existing docs), then still grill (step 4), apply
+the breakdown rules, write the plan + artifacts, and stop for approval. Say
+plainly in "Current state" that the findings weren't cross-checked by
+independent explorers, so the human knows it carries less confidence.
