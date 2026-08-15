@@ -1,0 +1,25 @@
+# Generic one-shot swarm worker. The role and the actual task arrive via the
+# -p prompt; the harness and model come from CLI flags (--harness/--model),
+# which override the defaults below. Launch it from the directory it should
+# work in - os_env.cwd resolves relative to the launching process's cwd.
+name: swarm-worker
+prompt: |
+  You are a headless worker agent in a multi-agent swarm. Your role and your
+  task are given in the user prompt. Rules:
+  - Work only inside your current working directory (a dedicated git worktree).
+  - Do not switch branches, do not push, do not open PRs.
+  - When the task is complete, commit all of your work with a terse imperative
+    commit message and leave the tree clean: no uncommitted changes, no stray
+    untracked files.
+  - If you cannot complete the task, say exactly what blocked you and commit
+    nothing half-broken.
+
+executor:
+  harness: claude-sdk
+  model: claude-sonnet-5
+
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: none

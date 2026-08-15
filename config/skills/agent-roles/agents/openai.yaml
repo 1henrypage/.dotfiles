@@ -1,0 +1,3 @@
+interface:
+  display_name: "Agent Roles"
+  short_description: "Role-to-model registry for plan/swarm workflows"
