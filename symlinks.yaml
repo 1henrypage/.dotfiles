@@ -13,8 +13,19 @@
     ~/.zshrc: { path: config/zsh/.zshrc, force: true }
     ~/.tmux/plugins/tpm: lib/tpm
     ~/.tmux.conf: config/tmux/tmux.conf
-    ~/.claude: { path: config/claude, force: true }
-    ~/.claude/skills: { path: config/skills, force: true }
+
+    # ~/.claude - personal force-links the whole live global state wholesale (this entry pair);
+    # corporate instead links only CLAUDE.md + skills, without force, so pre-provisioned
+    # enterprise auth/settings survive - see the second `link:` block below.
+    ~/.claude:
+      if: '[ "$DOTFILES_PROFILE" != corporate ]'
+      path: config/claude
+      force: true
+    ~/.claude/skills:
+      if: '[ "$DOTFILES_PROFILE" != corporate ]'
+      path: config/skills
+      force: true
+
     ~/.agents/skills: { path: config/skills, force: true }
     # omnigent's own runtime dir (~/.omnigent) holds live daemon/session
     # state (chat.db, daemons/, logs/, artifacts/) we must never touch, so
@@ -27,7 +38,6 @@
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/kitty: config/kitty
-    ${XDG_CONFIG_HOME}/karabiner: config/karabiner
     ${XDG_CONFIG_HOME}/starship.toml: config/general/starship.toml
 
     # Utility config files
@@ -38,14 +48,25 @@
     #${XDG_CONFIG_HOME}/yabai/yabairc:
     #  if: '[ `uname` = Darwin ]'
     #  path: config/macos/yabairc
-    ~/.Brewfile:
-      if: '[ `uname` = Darwin ]'
-      path: scripts/installs/Brewfile
     ~/Library/LaunchAgents/:
       if: '[ `uname` = Darwin ]'
-      path: config/macos/LaunchAgents/*
+      path: config/macos/LaunchAgents/common/*
       glob: true
-    
+
+# Corporate-only variants. Split into a second `link:` block because dotbot's YAML mapping keys
+# must be unique per block - these targets already appear (gated the other way) above.
+- link:
+    ~/.claude/CLAUDE.md:
+      if: '[ "$DOTFILES_PROFILE" = corporate ]'
+      path: config/claude/CLAUDE.md
+    ~/.claude/skills:
+      if: '[ "$DOTFILES_PROFILE" = corporate ]'
+      path: config/skills
+    ~/Library/LaunchAgents/:
+      if: '[ `uname` = Darwin ] && [ "$DOTFILES_PROFILE" != corporate ]'
+      path: config/macos/LaunchAgents/personal/*
+      glob: true
+
 # If not already present, create home directories
 - create:
     - ~/Downloads

@@ -1,6 +1,5 @@
-[user]
-	name = Henry Page
-	email = dev@henrypage.com
+[include]
+	path = ~/.config/git/local
 
 [init]
     defaultBranch = main

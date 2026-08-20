@@ -9,7 +9,15 @@
 set -e
 
 REPO_SSH="git@github.com:1henrypage/.dotfiles.git"
+REPO_HTTPS="https://github.com/1henrypage/.dotfiles.git"
 REPO_DIR="$HOME/.dotfiles"
+
+REPO_URL="$REPO_SSH"
+for arg in "$@"; do
+  case "$arg" in
+    --corporate) REPO_URL="$REPO_HTTPS" ;;
+  esac
+done
 
 PURPLE='\033[0;35m'
 YELLOW='\033[0;93m'
@@ -29,12 +37,12 @@ curl -fsSL \
 if [ -d "$REPO_DIR" ]; then
   echo -e "${YELLOW}Dotfiles repo already exists at $REPO_DIR, skipping clone${RESET}"
 else
-  echo -e "${PURPLE}Cloning dotfiles repository via SSH...${RESET}"
-  git clone "$REPO_SSH" "$REPO_DIR"
+  echo -e "${PURPLE}Cloning dotfiles repository from $REPO_URL...${RESET}"
+  git clone "$REPO_URL" "$REPO_DIR"
 fi
 
 # ---- Step 3: Run install ----
 echo -e "${PURPLE}Running install script...${RESET}"
 cd "$REPO_DIR"
-./install.sh
+./install.sh "$@"
 

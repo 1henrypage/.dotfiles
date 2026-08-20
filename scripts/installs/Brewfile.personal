@@ -1,0 +1,35 @@
+# Options
+cask_args appdir: '~/Applications', require_sha: true
+
+#############################################################
+# Personal-machine only                                     #
+#############################################################
+
+# Misc
+brew 'tailscale'      # VPN client; conflicts with corporate VPN
+
+# DevOps
+brew 'container'         # Containers - paid subscription above 250 employees, IT provisions/forbids on corporate
+brew 'nmap'           # Port scanning
+cask 'wireshark'      # Network analyzer + packet capture
+
+# CASKS
+cask 'postman'        # HTTP API testing app; syncs collections to Postman cloud by default
+cask 'docker-desktop'
+cask 'zotero'             # Paper/Citations manager
+cask 'claude'
+cask 'macfuse'            # This is required for rclone on mac
+
+# Media
+cask 'spotify', args: { require_sha: false } # Propietary music streaming
+cask 'iina'          # Media player
+cask 'transmission'   # Torrent client
+cask 'signal'         # Link to encrypted mobile messenger
+cask 'discord'        # Discord
+cask 'whatsapp'       # Luddite messenger
+cask 'protonvpn'      # Client app for ProtonVPN
+cask 'telegram'       # Telegram
+# OpenWhispr (voice-to-text) has no cask; installed out-of-band via scripts/macos/personal/macos-openwhispr.sh
+
+# Mac OS Mods and Imrovments
+cask 'stats'          # System resource usage in menubar

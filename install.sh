@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Dotfiles Install Script: 1henrypage
-# Clone/update dotfiles and setup symlink 
+# Clone/update dotfiles and setup symlink
 # Compatibility for macOS, arch will be supported in future.
 
 # ---------- UTILITY --------------------
@@ -47,6 +47,62 @@ system_verify() {
     fi
 }
 
+# ------------- ARGS ---------------------------
+
+DOTFILES_PROFILE="personal"
+DRY_RUN="false"
+
+print_help() {
+    cat <<EOF
+Usage: install.sh [--corporate|--personal] [--dry-run] [--help]
+
+  --corporate   Work-machine profile: base packages/config only, HTTPS submodule
+                bootstrap, no wholesale ~/.claude force-link, skips 'brew upgrade'.
+  --personal    Personal-machine profile (default): base + personal packages/config.
+  --dry-run     Print the resolved profile, Brewfile paths, installer scripts, and
+                symlink set without changing anything.
+  --help        Show this help and exit.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --corporate)
+            DOTFILES_PROFILE="corporate"
+            ;;
+        --personal)
+            DOTFILES_PROFILE="personal"
+            ;;
+        --dry-run)
+            DRY_RUN="true"
+            ;;
+        --help)
+            print_help
+            exit 0
+            ;;
+        *)
+            echo "${RED}Error:${RESET} unknown flag: $1"
+            print_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+export DOTFILES_PROFILE
+
+# ------------- FAILURE TRACKING ----------------
+
+FAILURE_COUNT=0
+FAILED_STEPS=""
+
+record_failure() {
+    FAILURE_COUNT=$((FAILURE_COUNT + 1))
+    FAILED_STEPS="$FAILED_STEPS
+  - $1"
+    echo "${RED}Failed:${RESET} $1"
+}
+
 # ------------- VARS ---------------------------
 
 ORIG_PWD=$(pwd)
@@ -74,10 +130,52 @@ DOTBOT_BIN="bin/dotbot"
 
 # ---- PRE - SETUP
 make_banner "1henrypage Setup" "$CYAN"
+echo "Profile: $DOTFILES_PROFILE"
 
 # Ensure XDG directories are set
 : "${XDG_CONFIG_HOME:=$HOME/.config}"
 : "${XDG_DATA_HOME:=$HOME/.local/share}"
+
+if [ "$DRY_RUN" = "true" ]; then
+    echo ""
+    echo "${YELLOW}Dry run - no changes will be made.${RESET}"
+
+    echo ""
+    echo "Brewfiles:"
+    echo "  $SRC_DIR/scripts/installs/Brewfile"
+    if [ "$DOTFILES_PROFILE" = "personal" ]; then
+        echo "  $SRC_DIR/scripts/installs/Brewfile.personal"
+    fi
+
+    echo ""
+    echo "macOS setup scripts:"
+    for script in "$SRC_DIR"/scripts/macos/common/macos-*.sh; do
+        [ -f "$script" ] && echo "  $script"
+    done
+    if [ "$DOTFILES_PROFILE" = "personal" ]; then
+        for script in "$SRC_DIR"/scripts/macos/personal/macos-*.sh; do
+            [ -f "$script" ] && echo "  $script"
+        done
+    fi
+
+    echo ""
+    echo "Cross-platform tool installers:"
+    for script in "$SRC_DIR"/scripts/installs/tools/common/tool-*.sh; do
+        [ -f "$script" ] && echo "  $script"
+    done
+    if [ "$DOTFILES_PROFILE" = "personal" ]; then
+        for script in "$SRC_DIR"/scripts/installs/tools/personal/tool-*.sh; do
+            [ -f "$script" ] && echo "  $script"
+        done
+    fi
+
+    echo ""
+    echo "Symlinks (dotbot dry run, DOTFILES_PROFILE=$DOTFILES_PROFILE):"
+    chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
+    "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE" -n
+
+    exit 0
+fi
 
 # Verify required commands
 system_verify git true
@@ -86,36 +184,142 @@ system_verify vim false
 system_verify nvim false
 system_verify tmux false
 
+# ---- GIT IDENTITY ----
+# Never hardcode name/email into the tracked .gitconfig; prompt once per machine into a
+# gitignored, out-of-repo file that .gitconfig [include]s. Must read from /dev/tty since the
+# README install path is `curl | bash`, so stdin is the pipe, not a terminal.
+GIT_LOCAL_CONFIG="$HOME/.config/git/local"
+if [ ! -f "$GIT_LOCAL_CONFIG" ]; then
+    mkdir -p "$(dirname "$GIT_LOCAL_CONFIG")"
+    if [ -r /dev/tty ]; then
+        printf "Git user name: " > /dev/tty
+        read -r git_user_name < /dev/tty
+        printf "Git user email: " > /dev/tty
+        read -r git_user_email < /dev/tty
+        {
+            echo "[user]"
+            echo "    name = $git_user_name"
+            echo "    email = $git_user_email"
+        } > "$GIT_LOCAL_CONFIG"
+    else
+        echo "${YELLOW}Warning:${RESET} no controlling tty; writing a stub git identity to $GIT_LOCAL_CONFIG - edit it by hand."
+        {
+            echo "[user]"
+            echo "    name = CHANGEME"
+            echo "    email = CHANGEME"
+        } > "$GIT_LOCAL_CONFIG"
+        record_failure "git identity (no tty, wrote stub - edit $GIT_LOCAL_CONFIG)"
+    fi
+    if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+        {
+            echo ""
+            echo "[url \"https://github.com/\"]"
+            echo "    insteadOf = git@github.com:"
+        } >> "$GIT_LOCAL_CONFIG"
+    fi
+fi
+
 echo "Updating dotfiles from remote..."
 git pull origin main || terminate
-git submodule update --recursive --remote --init
+
+if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+    # No personal SSH key on a corporate machine - rewrite submodule SSH URLs to HTTPS inline.
+    # Can't rely on ~/.gitconfig's [include] here: it isn't linked until dotbot runs below.
+    if ! git -c url."https://github.com/".insteadOf="git@github.com:" submodule update --recursive --remote --init; then
+        record_failure "git submodule update (https)"
+    fi
+else
+    if ! git submodule update --recursive --remote --init; then
+        record_failure "git submodule update"
+    fi
+fi
 
 echo "Setting up symlinks..."
 chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
-"$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE"
+if ! "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE"; then
+    record_failure "dotbot symlinks"
+fi
 
 # --- Install Packages ---
 if [ "$SYSTEM_TYPE" = "Darwin" ]; then
     # macOS Homebrew
     if ! command_exists brew; then
         echo "Installing Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        if ! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+            record_failure "Homebrew install"
+        fi
         export PATH=/opt/homebrew/bin:$PATH
     fi
-    if [ -f "$HOME/.Brewfile" ]; then
-        echo "Updating Homebrew and installing packages..."
-        brew update
-        brew upgrade
-        brew bundle --global --verbose
+
+    if command_exists brew; then
+        echo "Updating Homebrew..."
+        if ! brew update; then
+            record_failure "brew update"
+        fi
+
+        # Corporate skips this: it upgrades every installed formula/cask, including anything IT
+        # already put on the machine.
+        if [ "$DOTFILES_PROFILE" = "personal" ]; then
+            echo "Upgrading Homebrew packages..."
+            if ! brew upgrade; then
+                record_failure "brew upgrade"
+            fi
+        fi
+
+        echo "Installing Homebrew packages (base)..."
+        if ! brew bundle install --file="$SRC_DIR/scripts/installs/Brewfile"; then
+            record_failure "brew bundle (base)"
+        fi
+
+        if [ "$DOTFILES_PROFILE" = "personal" ]; then
+            echo "Installing Homebrew packages (personal)..."
+            if ! brew bundle install --file="$SRC_DIR/scripts/installs/Brewfile.personal"; then
+                record_failure "brew bundle (personal)"
+            fi
+        fi
+
         brew cleanup
+    else
+        record_failure "brew unavailable after install attempt"
     fi
 
-
-    
     echo "Running MacOS specific setup scripts"
     macos_script="$SRC_DIR/scripts/macos/install.sh"
-    chmod +x "$macos_script" && "$macos_script"
-# debian is shit, setup arch 
+    chmod +x "$macos_script"
+    if ! "$macos_script"; then
+        record_failure "macOS setup scripts"
+    fi
+
+    # LaunchAgents are only symlinked by dotbot above, launchd never picks them up on its own.
+    echo "Loading LaunchAgents..."
+    load_launch_agents() {
+        dir="$1"
+        status=0
+        for plist in "$dir"/*.plist; do
+            [ -f "$plist" ] || continue
+            name=$(basename "$plist")
+            label=$(basename "$name" .plist)
+            target="$HOME/Library/LaunchAgents/$name"
+            if [ ! -e "$target" ]; then
+                echo "${YELLOW}Warning:${RESET} $target not linked, skipping"
+                status=1
+                continue
+            fi
+            launchctl bootout "gui/$(id -u)/$label" >/dev/null 2>&1
+            if ! launchctl bootstrap "gui/$(id -u)" "$target"; then
+                echo "${RED}Failed:${RESET} launchctl bootstrap $label"
+                status=1
+            fi
+        done
+        return $status
+    }
+    agents_status=0
+    load_launch_agents "$SRC_DIR/config/macos/LaunchAgents/common" || agents_status=1
+    if [ "$DOTFILES_PROFILE" = "personal" ]; then
+        load_launch_agents "$SRC_DIR/config/macos/LaunchAgents/personal" || agents_status=1
+    fi
+    [ $agents_status -eq 0 ] || record_failure "LaunchAgents"
+# debian is shit, setup arch
 #elif [ -f "/etc/debian_version" ]; then
 #    echo "Installing packages via apt..."
 #    apt update && apt upgrade -y
@@ -128,18 +332,31 @@ fi
 # Ensure Rust default toolchain is stable (non-interactive)
 if command_exists rustup; then
     echo "Setting Rust default toolchain to stable..."
-    rustup default stable 
+    if ! rustup default stable; then
+        record_failure "rustup default stable"
+    fi
 fi
 
 # Cross-platform curl/script-based installs (tools with no brew/pacman formula)
 echo "Running cross-platform tool installers..."
 tools_script="$SRC_DIR/scripts/installs/tools/install.sh"
-chmod +x "$tools_script" && "$tools_script"
+chmod +x "$tools_script"
+if ! "$tools_script"; then
+    record_failure "cross-platform tool installers"
+fi
 
 # --- Apply Preferences ---
 echo "Applying ZSH, Vim, TMUX plugins..."
-[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ] && "$HOME/.tmux/plugins/tpm/bin/install_plugins"
-[ -x "$(command -v zsh)" ] && /bin/zsh -i -c "antigen update && antigen-apply"
+if [ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]; then
+    if ! "$HOME/.tmux/plugins/tpm/bin/install_plugins"; then
+        record_failure "tmux plugin install"
+    fi
+fi
+if [ -x "$(command -v zsh)" ]; then
+    if ! /bin/zsh -i -c "antigen update && antigen-apply"; then
+        record_failure "antigen update"
+    fi
+fi
 
 # --- Finishing Up ---
 # source "$HOME/.zshenv" 2>/dev/null
@@ -151,9 +368,12 @@ else
     elapsed="$elapsed seconds"
 fi
 
-make_banner "✨ Dotfiles configured successfully in $elapsed" "$GREEN"
-exit 0
-
-
-
-
+if [ $FAILURE_COUNT -eq 0 ]; then
+    make_banner "✨ Dotfiles configured successfully in $elapsed" "$GREEN"
+    exit 0
+else
+    echo ""
+    echo "${RED}$FAILURE_COUNT step(s) failed:${RESET}$FAILED_STEPS"
+    make_banner "Dotfiles configured with failures in $elapsed" "$RED"
+    exit 1
+fi

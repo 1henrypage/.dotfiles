@@ -1,7 +1,8 @@
 # Working on this repo (project memory)
 
 Personal, **macOS-first** dotfiles. Config is deployed as dotbot symlinks; the machine is
-bootstrapped over SSH by `RUNME.sh` → `install.sh`. Linux/Arch support is aspirational and
+bootstrapped by `RUNME.sh` → `install.sh`, over SSH by default or HTTPS under `--corporate`
+(a work-machine install profile — see Conventions below). Linux/Arch support is aspirational and
 underspecified.
 
 > **Where we are going.**
@@ -20,19 +21,24 @@ The single most confusing thing about this repo. They are unrelated:
   (so they track normally); everything else here (e.g. `settings.local.json`) stays ignored.
   Adding a **new** doc under `.claude/` needs a matching `!.claude/<name>` line in `.gitignore`,
   or it won't show in `git status`.
-- **`config/claude/`** = the user's **live global `~/.claude`**, force-symlinked in
-  (`symlinks.yaml:16`). Editing anything under it mutates **live, machine-wide Claude Code
-  state**. Only 11 files are tracked (`settings.json`, `hooks/notify.sh`, `skills/labrador/*`,
-  a few `.gitkeep`s); runtime state (sessions, history, projects, cache) lives in the working
-  tree but is gitignored via **two** layers — root `.gitignore` + `config/claude/.gitignore`.
-  **Never `git add`** that runtime state.
+- **`config/claude/`** = the user's **live global `~/.claude`**, force-symlinked in on the
+  **personal** install profile (`symlinks.yaml`, `if: DOTFILES_PROFILE != corporate`). Editing
+  anything under it mutates **live, machine-wide Claude Code state**. Only 11 files are tracked
+  (`settings.json`, `hooks/notify.sh`, `skills/labrador/*`, a few `.gitkeep`s); runtime state
+  (sessions, history, projects, cache) lives in the working tree but is gitignored via **two**
+  layers — root `.gitignore` + `config/claude/.gitignore`. **Never `git add`** that runtime state.
+  On the **corporate** profile (`install.sh --corporate`), only `~/.claude/CLAUDE.md` and
+  `~/.claude/skills` are linked, without `force`, so a pre-provisioned enterprise `~/.claude`
+  (auth, org settings, `settings.json`) is left alone — see `ARCHITECTURE.md` §9.
 
 ## Footguns (destructive / surprising)
 
-- **`force: true` symlinks destroy pre-existing files.** `~/.zshenv`, `~/.zshrc`, and `~/.claude`
-  are `force: true` (`symlinks.yaml:12,13,16`) → dotbot `rm`/`rmtree`s any real file or dir
-  already at that path, **no backup, no prompt**. Adopting these dotfiles on a machine that
-  already has a real `~/.claude` **destroys it**.
+- **`force: true` symlinks destroy pre-existing files.** `~/.zshenv`, `~/.zshrc`, and (on the
+  **personal** profile only) `~/.claude` are `force: true` → dotbot `rm`/`rmtree`s any real file
+  or dir already at that path, **no backup, no prompt**. Adopting these dotfiles on a machine that
+  already has a real `~/.claude` **destroys it**. The **corporate** profile (`install.sh
+  --corporate`) does not take this path at all — it links `~/.claude/CLAUDE.md` and
+  `~/.claude/skills` individually, without `force`, so a real pre-existing `~/.claude` survives.
 - **`clean: ['~', '${XDG_CONFIG_HOME}']`** (`symlinks.yaml:6`) deletes dangling symlinks under
   those roots on every run.
 - **`install.sh` has no `set -e`.** Steps fail silently and the green "configured successfully"
@@ -68,9 +74,21 @@ It's a submodule with its **own** `config/nvim/CLAUDE.md` and conventions (all h
 
 - Commits: terse, imperative, **no** Conventional-Commits prefixes (no `feat:`/`fix:`); casing is
   loose (mostly lowercase). Match the existing `git log`.
-- Bootstrap is **SSH-only** (`git@github.com:…`). `RUNME.sh` hardcodes the `1henrypage` identity
-  and `config/general/.gitconfig` hardcodes `Henry Page` / `dev@henrypage.com` — a forker must
-  edit both.
+- Bootstrap defaults to **SSH** (`git@github.com:…`) but supports **HTTPS** via `install.sh
+  --corporate` (see below) — `RUNME.sh` still hardcodes the `1henrypage` identity either way, and
+  `config/general/.gitconfig` no longer hardcodes an identity at all (see below) — a forker must
+  edit `RUNME.sh`'s repo URLs regardless of profile.
 - No build or test harness — it's configs plus POSIX-ish install scripts. Verify any claim by
   reading the file it cites; the working tree often carries uncommitted WIP, so `git blame` on a
   live config can mislead.
+- **Install profiles.** `install.sh --corporate` (work machine) vs. the default `--personal`
+  split every package, script, and symlink the installer touches into a base set (both machines)
+  and a personal-only set. There's no persisted state — the flag is resolved fresh on every
+  invocation and exported as `DOTFILES_PROFILE`, which both dotbot's `if:` conditions and every
+  child script read. Any new macOS setup script or cross-platform tool installer goes into either
+  `common/` (runs on both profiles) or `personal/` (personal only) under `scripts/macos/` and
+  `scripts/installs/tools/` — never loose at the top of those directories, since the runners only
+  glob those two subdirectories. Likewise `config/macos/LaunchAgents/{common,personal}/`. Git
+  identity is never hardcoded — `config/general/.gitconfig` `[include]`s a gitignored
+  `~/.config/git/local` that `install.sh` writes on first run by prompting over `/dev/tty`. Full
+  writeup: `ARCHITECTURE.md` §9.
