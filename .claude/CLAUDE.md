@@ -22,40 +22,49 @@ The single most confusing thing about this repo. They are unrelated:
   Adding a **new** doc under `.claude/` needs a matching `!.claude/<name>` line in `.gitignore`,
   or it won't show in `git status`.
 - **`config/claude/`** = the user's **live global `~/.claude`**, force-symlinked in on the
-  **personal** install profile (`symlinks.yaml`, `if: DOTFILES_PROFILE != corporate`). Editing
-  anything under it mutates **live, machine-wide Claude Code state**. Only 11 files are tracked
-  (`settings.json`, `hooks/notify.sh`, `skills/labrador/*`, a few `.gitkeep`s); runtime state
-  (sessions, history, projects, cache) lives in the working tree but is gitignored via **two**
-  layers — root `.gitignore` + `config/claude/.gitignore`. **Never `git add`** that runtime state.
-  On the **corporate** profile (`install.sh --corporate`), only `~/.claude/CLAUDE.md` and
-  `~/.claude/skills` are linked, without `force`, so a pre-provisioned enterprise `~/.claude`
-  (auth, org settings, `settings.json`) is left alone — see `ARCHITECTURE.md` §9.
+  **personal** install profile (`symlinks.yaml`, `if: DOTFILES_PROFILE = personal`). Editing
+  anything under it mutates **live, machine-wide Claude Code state**. Only 7 entries are tracked
+  (`.gitignore`, `CLAUDE.md`, `WRITING.md`, `settings.json`, `hooks/notify.sh`,
+  `commands/.gitkeep`, and a tracked symlink `skills -> ../skills` that pulls in the real skill
+  directories from `config/skills/`); runtime state (sessions, history, projects, cache) lives in
+  the working tree but is gitignored via **two** layers — root `.gitignore` +
+  `config/claude/.gitignore`. **Never `git add`** that runtime state.
+  On the **corporate** profile (`install.sh --corporate`), only `~/.claude/CLAUDE.md`
+  (existence-guarded) and per-skill links under `~/.claude/skills/` + `~/.agents/skills/` are
+  linked, all without `force`, so a pre-provisioned enterprise `~/.claude` (auth, org settings,
+  `settings.json`) is left alone — see `ARCHITECTURE.md` §9.
 
 ## Footguns (destructive / surprising)
 
 - **`force: true` symlinks destroy pre-existing files.** `~/.zshenv`, `~/.zshrc`, and (on the
-  **personal** profile only) `~/.claude` are `force: true` → dotbot `rm`/`rmtree`s any real file
-  or dir already at that path, **no backup, no prompt**. Adopting these dotfiles on a machine that
-  already has a real `~/.claude` **destroys it**. The **corporate** profile (`install.sh
-  --corporate`) does not take this path at all — it links `~/.claude/CLAUDE.md` and
-  `~/.claude/skills` individually, without `force`, so a real pre-existing `~/.claude` survives.
-- **`clean: ['~', '${XDG_CONFIG_HOME}']`** (`symlinks.yaml:6`) deletes dangling symlinks under
-  those roots on every run.
-- **`install.sh` has no `set -e`.** Steps fail silently and the green "configured successfully"
-  banner **always** prints. Don't read exit success as proof each step worked.
-- **`brew upgrade` (`install.sh:108`) upgrades every installed formula/cask**, not just Brewfile
-  entries.
+  **personal** profile only) `~/.claude` and `~/.agents/skills` are `force: true` → dotbot
+  `rm`/`rmtree`s any real file or dir already at that path, **no backup, no prompt**. Adopting
+  these dotfiles on a machine that already has a real `~/.claude` **destroys it**. The
+  **corporate** profile (`install.sh --corporate`) does not take this path at all — it links
+  `~/.claude/CLAUDE.md` (existence-guarded) and per-skill globs under `~/.claude/skills/` +
+  `~/.agents/skills/`, all without `force`, so a real pre-existing `~/.claude` survives.
+- **`clean: ['~', '${XDG_CONFIG_HOME}', '~/Library/LaunchAgents', '~/.claude/skills',
+  '~/.agents/skills']`** (`symlinks.yaml:6`) deletes dangling symlinks under those roots on every
+  run — the last two matter only on corporate, where skills are per-skill glob-links rather than
+  one directory link, so a removed skill leaves a dangling link `clean:` needs to reap.
+- **`install.sh` has no `set -e`.** Steps fail silently; each failure is tracked and the final
+  banner is only green if nothing failed. Don't assume `install.sh`'s own line citations here stay
+  accurate — it's one of the fastest-churning files in the repo (see `ARCHITECTURE.md`'s note on
+  citing by name instead of line number for it).
+- **`brew upgrade` upgrades every installed formula/cask**, not just Brewfile entries — that's why
+  it's gated to the personal profile only.
 - **`macos-openwhispr.sh:70`** strips the Gatekeeper quarantine flag
   (`xattr -dr com.apple.quarantine`) from a freshly-downloaded, unsigned `.app`.
 
 ## Submodule drift is expected, not damage
 
 Three submodules (`.gitmodules`): `lib/dotbot`, `lib/tpm` (upstream tools) and `config/nvim`
-(the user's **own** fork, `git@github.com:1henrypage/nvim`). `install.sh:91` runs
-`git submodule update --recursive --remote --init`; `--remote` fast-forwards them (and their
-nested `pyyaml` / `tmux-test`) past their pinned SHAs on every run. The `m` beside `lib/dotbot`
-and `lib/tpm` in `git status` is that nested drift — **harmless, not a manual edit; don't blindly
-commit it.**
+(the user's **own** fork, `git@github.com:1henrypage/nvim`). `install.sh` runs
+`git submodule update --recursive --remote --init` (over an inline HTTPS rewrite on the
+corporate profile, since there's no personal SSH key there); `--remote` fast-forwards them (and
+their nested `pyyaml` / `tmux-test`) past their pinned SHAs on every run. The `m` beside
+`lib/dotbot` and `lib/tpm` in `git status` is that nested drift — **harmless, not a manual edit;
+don't blindly commit it.**
 
 ## The `.zwc` edit trap
 

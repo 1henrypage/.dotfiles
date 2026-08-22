@@ -3,7 +3,7 @@
       create: true
       relink: true
 
-- clean: ['~', '${XDG_CONFIG_HOME}', '~/Library/LaunchAgents']
+- clean: ['~', '${XDG_CONFIG_HOME}', '~/Library/LaunchAgents', '~/.claude/skills', '~/.agents/skills']
 
 # Symlink locations for files / directories
 - link:
@@ -14,16 +14,16 @@
     ~/.tmux/plugins/tpm: lib/tpm
     ~/.tmux.conf: config/tmux/tmux.conf
 
-    # ~/.claude - personal force-links the whole live global state wholesale (this entry pair);
-    # corporate instead links only CLAUDE.md + skills, without force, so pre-provisioned
-    # enterprise auth/settings survive - see the second `link:` block below.
+    # ~/.claude - personal force-links the whole live global state wholesale to config/claude
+    # (this entry); corporate instead links only CLAUDE.md + skills, without force, so
+    # pre-provisioned enterprise auth/settings survive - see the second `link:` block below.
+    # There is deliberately no separate ~/.claude/skills entry here: config/claude/skills is
+    # itself a tracked symlink (-> ../skills), so force-linking ~/.claude to config/claude above
+    # already makes ~/.claude/skills resolve to config/skills for free. A second dotbot entry
+    # for that path would fight the tracked symlink - see .claude/ARCHITECTURE.md §5.
     ~/.claude:
       if: '[ "$DOTFILES_PROFILE" = personal ]'
       path: config/claude
-      force: true
-    ~/.claude/skills:
-      if: '[ "$DOTFILES_PROFILE" = personal ]'
-      path: config/skills
       force: true
 
     ~/.agents/skills:
@@ -37,7 +37,9 @@
     # PLAN skill's output persists in dotfiles across machines without any
     # risk of clobbering existing runtime data.
     ~/.omnigent/plans: config/omnigent/plans
-    ~/AGENTS.md: config/claude/CLAUDE.md
+    ~/AGENTS.md:
+      if: '[ ! -e "$HOME/AGENTS.md" ] || [ -L "$HOME/AGENTS.md" ]'
+      path: config/claude/CLAUDE.md
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/kitty: config/kitty

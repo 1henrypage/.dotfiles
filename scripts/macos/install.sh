@@ -1,6 +1,6 @@
 #!/bin/sh
-# install.sh - run all macos-*.sh scripts under common/ (always) and personal/ (unless
-# DOTFILES_PROFILE=corporate). POSIX compliant.
+# install.sh - run all macos-*.sh scripts under common/ (always) and personal/ (only when
+# DOTFILES_PROFILE=personal). POSIX compliant.
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 FAILED=0
@@ -19,7 +19,7 @@ run_dir() {
 }
 
 run_dir "$SCRIPT_DIR/common"
-if [ "$DOTFILES_PROFILE" != "corporate" ]; then
+if [ "$DOTFILES_PROFILE" = "personal" ]; then
     run_dir "$SCRIPT_DIR/personal"
 fi
 

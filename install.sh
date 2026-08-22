@@ -138,7 +138,7 @@ echo "Profile: $DOTFILES_PROFILE"
 
 if [ "$DRY_RUN" = "true" ]; then
     echo ""
-    echo "${YELLOW}Dry run - no changes will be made.${RESET}"
+    echo "${YELLOW}Dry run - no config will be changed.${RESET} (lib/dotbot may still be initialised below so the symlink preview can run.)"
 
     echo ""
     echo "Brewfiles:"
@@ -232,7 +232,7 @@ if [ ! -f "$GIT_LOCAL_CONFIG" ] || grep -q CHANGEME "$GIT_LOCAL_CONFIG" 2>/dev/n
     fi
 fi
 
-if [ "$DOTFILES_PROFILE" = "corporate" ] && ! grep -q insteadOf "$GIT_LOCAL_CONFIG" 2>/dev/null; then
+if [ "$DOTFILES_PROFILE" = "corporate" ] && ! git config --file "$GIT_LOCAL_CONFIG" --get-all 'url.https://github.com/.insteadOf' 2>/dev/null | grep -qx 'git@github.com:'; then
     {
         echo ""
         echo "[url \"https://github.com/\"]"
@@ -253,6 +253,20 @@ else
     if ! git submodule update --recursive --remote --init; then
         record_failure "git submodule update"
     fi
+fi
+
+if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+    for skill_dir in "$SRC_DIR"/config/skills/*/; do
+        [ -d "$skill_dir" ] || continue
+        skill_name=$(basename "$skill_dir")
+        for skills_root in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
+            collision="$skills_root/$skill_name"
+            if [ -d "$collision" ] && [ ! -L "$collision" ]; then
+                echo "${YELLOW}Note:${RESET} $collision already exists as a real directory (pre-provisioned)"
+                echo "      - dotbot will fail on it. Resolve by hand, then re-run."
+            fi
+        done
+    done
 fi
 
 echo "Setting up symlinks..."

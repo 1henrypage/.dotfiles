@@ -1,6 +1,6 @@
 #!/bin/sh
-# install.sh - run all tool-*.sh installers under common/ (always) and personal/ (unless
-# DOTFILES_PROFILE=corporate). Cross-platform curl/script-based installs for tools with no
+# install.sh - run all tool-*.sh installers under common/ (always) and personal/ (only when
+# DOTFILES_PROFILE=personal). Cross-platform curl/script-based installs for tools with no
 # brew/pacman formula. POSIX compliant.
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -19,7 +19,7 @@ run_dir() {
 }
 
 run_dir "$SCRIPT_DIR/common"
-if [ "$DOTFILES_PROFILE" != "corporate" ]; then
+if [ "$DOTFILES_PROFILE" = "personal" ]; then
     run_dir "$SCRIPT_DIR/personal"
 fi
 
