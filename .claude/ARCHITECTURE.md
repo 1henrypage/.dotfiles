@@ -218,11 +218,12 @@ individually, without `force` — see §9.
 
 **Tracked** (7 files — `git ls-files config/claude`): `.gitignore`, `CLAUDE.md`, `WRITING.md`,
 `settings.json`, `hooks/notify.sh`, `commands/.gitkeep`. `skills/` is **no longer a physical
-directory here** — skills moved to the tool-neutral `config/skills/` (`labrador/` and
-`no-mistakes/`), symlinked in via two new `symlinks.yaml` entries: `~/.claude/skills` and
-`~/.agents/skills` (Codex CLI's personal skills path). One physical copy on disk, shared across
-both tools. Verify with `git ls-files config/claude` and `git ls-files config/skills` rather than
-trusting a stale doc.
+directory here** — skills moved to the tool-neutral `config/skills/`, symlinked in via two
+`symlinks.yaml` entries: `~/.claude/skills` and `~/.agents/skills` (Codex CLI's personal skills
+path). One physical copy on disk, shared across both tools. Don't paste a static list of the
+skill directories here either - same drift risk as §8's file tree. Run `git ls-files
+config/skills` for the current set; verify `git ls-files config/claude` too rather than trusting
+a stale doc.
 
 Notable `settings.json`:
 - `env`: `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1`, `CLAUDE_CODE_DISABLE_1M_CONTEXT=1`,
@@ -383,6 +384,12 @@ either, so a real file materializing there first would make the dotbot symlink s
 persisted `~/.config/git/local` rule (written with the `insteadOf` block appended, corporate only)
 still covers any submodule work done by hand later.
 
+**This assumes the repo (and its submodules) stay public.** Neither `RUNME.sh`'s HTTPS clone nor
+`install.sh`'s `git pull origin main` (still fatal via `terminate`) has a credential source on a
+corporate machine - no personal SSH key, no PAT wired in anywhere. If `1henrypage/.dotfiles` or
+any of the three submodules (`lib/dotbot`, `lib/tpm`, `config/nvim`) ever goes private, both fail
+hard on a corporate box with no fallback.
+
 **Git identity is always prompted, never hardcoded.** `config/general/.gitconfig` no longer carries
 a `[user]` section — it `[include]`s `~/.config/git/local`, a file outside the repo that
 `install.sh` creates on first run by reading name/email from `/dev/tty` (not stdin, since the
@@ -406,6 +413,13 @@ from two different directories at once.
 
 **Karabiner is gone on both profiles**, replaced by `scripts/macos/common/macos-keyremap.sh`
 (hidutil, see §3) and its LaunchAgent — no cask, no kernel extension, no Input Monitoring prompt.
+One limitation worth knowing: the LaunchAgent is `RunAtLoad` with no `KeepAlive`, and
+`hidutil property --set` only applies to devices already attached when it runs. So the remap
+covers the built-in keyboard from login onward, but an **external keyboard plugged in later does
+not get it** until the next login (or a manual re-run of the script). Karabiner reapplied its
+remap on device attach; this is a real, accepted regression versus the old setup, not an
+oversight.
+
 **LaunchAgents are now actually loaded**: `install.sh` runs `launchctl bootout` (ignoring failure —
 the agent may not be loaded yet) then `launchctl bootstrap gui/$(id -u)` over every plist linked
 into `~/Library/LaunchAgents/`, for both the `common` and (personal-only) `personal` sets, fixing
@@ -423,3 +437,18 @@ Databricks is a JVM shop and both profiles need working Java out of the box.
 best-effort), so instead every step that can fail now calls `record_failure "<step name>"` into a
 counter/list on non-zero exit. The final banner is green with `exit 0` only if `$FAILURE_COUNT -eq
 0`; otherwise it prints the failed-step list and `exit 1`.
+
+### Migrating an existing machine
+
+The profile split above describes a fresh install. Landing a breaking change on this repo (a
+moved file, a new gate, a renamed target) on a machine that already ran an older version needs a
+one-time manual repair, not new install machinery - automating a repair path that only ever runs
+once per breaking change isn't worth the complexity. Precedent, from the `--corporate` split
+itself: the `personal/` LaunchAgents move orphaned `com.rclone.zotero.plist` (dotbot's `clean:`
+didn't cover `~/Library/LaunchAgents` at the time - since fixed, see the symlink map above), and
+the Karabiner removal left a stale `~/.config/karabiner` directory and an installed-but-configless
+`karabiner-elements` cask behind. Both were fixed by hand, not with a migration script: relink with
+the correct `DOTFILES_PROFILE` set so `clean:` reaps the dangling links, re-run the affected setup
+script directly, reload the affected LaunchAgents with `launchctl bootout`/`bootstrap`, and
+`brew uninstall` whatever the package split left behind. Reach for the same shape - relink,
+re-run the specific script, reload, uninstall - the next time a breaking change like this lands.

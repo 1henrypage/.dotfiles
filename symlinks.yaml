@@ -3,7 +3,7 @@
       create: true
       relink: true
 
-- clean: ['~', '${XDG_CONFIG_HOME}']
+- clean: ['~', '${XDG_CONFIG_HOME}', '~/Library/LaunchAgents']
 
 # Symlink locations for files / directories
 - link:
@@ -18,15 +18,18 @@
     # corporate instead links only CLAUDE.md + skills, without force, so pre-provisioned
     # enterprise auth/settings survive - see the second `link:` block below.
     ~/.claude:
-      if: '[ "$DOTFILES_PROFILE" != corporate ]'
+      if: '[ "$DOTFILES_PROFILE" = personal ]'
       path: config/claude
       force: true
     ~/.claude/skills:
-      if: '[ "$DOTFILES_PROFILE" != corporate ]'
+      if: '[ "$DOTFILES_PROFILE" = personal ]'
       path: config/skills
       force: true
 
-    ~/.agents/skills: { path: config/skills, force: true }
+    ~/.agents/skills:
+      if: '[ "$DOTFILES_PROFILE" = personal ]'
+      path: config/skills
+      force: true
     # omnigent's own runtime dir (~/.omnigent) holds live daemon/session
     # state (chat.db, daemons/, logs/, artifacts/) we must never touch, so
     # unlike ~/.claude it is NOT force-symlinked wholesale. Only the plans/
@@ -53,17 +56,22 @@
       path: config/macos/LaunchAgents/common/*
       glob: true
 
-# Corporate-only variants. Split into a second `link:` block because dotbot's YAML mapping keys
+# Profile-split variants. Split into a second `link:` block because dotbot's YAML mapping keys
 # must be unique per block - these targets already appear (gated the other way) above.
 - link:
     ~/.claude/CLAUDE.md:
-      if: '[ "$DOTFILES_PROFILE" = corporate ]'
+      if: '[ "$DOTFILES_PROFILE" = corporate ] && { [ ! -e "$HOME/.claude/CLAUDE.md" ] || [ -L "$HOME/.claude/CLAUDE.md" ]; }'
       path: config/claude/CLAUDE.md
-    ~/.claude/skills:
+    ~/.claude/skills/:
       if: '[ "$DOTFILES_PROFILE" = corporate ]'
-      path: config/skills
+      path: config/skills/*
+      glob: true
+    ~/.agents/skills/:
+      if: '[ "$DOTFILES_PROFILE" = corporate ]'
+      path: config/skills/*
+      glob: true
     ~/Library/LaunchAgents/:
-      if: '[ `uname` = Darwin ] && [ "$DOTFILES_PROFILE" != corporate ]'
+      if: '[ `uname` = Darwin ] && [ "$DOTFILES_PROFILE" = personal ]'
       path: config/macos/LaunchAgents/personal/*
       glob: true
 

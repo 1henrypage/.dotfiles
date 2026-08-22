@@ -3,7 +3,7 @@
 # Bootstrap script
 # Purpose:
 # 1. Install minimal system dependencies (git, etc.)
-# 2. Clone dotfiles repo via SSH
+# 2. Clone dotfiles repo via SSH or HTTPS
 # 3. Run install script
 
 set -e
@@ -21,7 +21,6 @@ done
 
 PURPLE='\033[0;35m'
 YELLOW='\033[0;93m'
-GREEN='\033[0;32m'
 RESET='\033[0m'
 
 echo -e "${PURPLE}Bootstrapping system...${RESET}"
@@ -33,7 +32,7 @@ curl -fsSL \
   https://raw.githubusercontent.com/1henrypage/.dotfiles/main/scripts/installs/prerequisites.sh \
   | bash
 
-# ---- Step 2: Clone repo via SSH ----
+# ---- Step 2: Clone repo via SSH or HTTPS ----
 if [ -d "$REPO_DIR" ]; then
   echo -e "${YELLOW}Dotfiles repo already exists at $REPO_DIR, skipping clone${RESET}"
 else

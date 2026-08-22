@@ -171,8 +171,22 @@ if [ "$DRY_RUN" = "true" ]; then
 
     echo ""
     echo "Symlinks (dotbot dry run, DOTFILES_PROFILE=$DOTFILES_PROFILE):"
-    chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
-    "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE" -n
+    if [ ! -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
+        echo "  (initialising $DOTBOT_DIR so the preview can run)"
+        # --recursive: dotbot's own nested pyyaml submodule, required just to import it.
+        # No --remote: a preview doesn't need the drift fast-forward.
+        if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+            git -c url."https://github.com/".insteadOf="git@github.com:" submodule update --init --recursive "$DOTBOT_DIR" || true
+        else
+            git submodule update --init --recursive "$DOTBOT_DIR" || true
+        fi
+    fi
+    if [ -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
+        [ -x "$DOTBOT_DIR/$DOTBOT_BIN" ] || chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
+        "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE" -n
+    else
+        echo "  ${YELLOW}Warning:${RESET} dotbot unavailable; skipping symlink preview."
+    fi
 
     exit 0
 fi
@@ -189,13 +203,19 @@ system_verify tmux false
 # gitignored, out-of-repo file that .gitconfig [include]s. Must read from /dev/tty since the
 # README install path is `curl | bash`, so stdin is the pipe, not a terminal.
 GIT_LOCAL_CONFIG="$HOME/.config/git/local"
-if [ ! -f "$GIT_LOCAL_CONFIG" ]; then
+if [ ! -f "$GIT_LOCAL_CONFIG" ] || grep -q CHANGEME "$GIT_LOCAL_CONFIG" 2>/dev/null; then
     mkdir -p "$(dirname "$GIT_LOCAL_CONFIG")"
     if [ -r /dev/tty ]; then
-        printf "Git user name: " > /dev/tty
-        read -r git_user_name < /dev/tty
-        printf "Git user email: " > /dev/tty
-        read -r git_user_email < /dev/tty
+        git_user_name=""
+        while [ -z "$git_user_name" ]; do
+            printf "Git user name: " > /dev/tty
+            read -r git_user_name < /dev/tty
+        done
+        git_user_email=""
+        while [ -z "$git_user_email" ]; do
+            printf "Git user email: " > /dev/tty
+            read -r git_user_email < /dev/tty
+        done
         {
             echo "[user]"
             echo "    name = $git_user_name"
@@ -210,13 +230,14 @@ if [ ! -f "$GIT_LOCAL_CONFIG" ]; then
         } > "$GIT_LOCAL_CONFIG"
         record_failure "git identity (no tty, wrote stub - edit $GIT_LOCAL_CONFIG)"
     fi
-    if [ "$DOTFILES_PROFILE" = "corporate" ]; then
-        {
-            echo ""
-            echo "[url \"https://github.com/\"]"
-            echo "    insteadOf = git@github.com:"
-        } >> "$GIT_LOCAL_CONFIG"
-    fi
+fi
+
+if [ "$DOTFILES_PROFILE" = "corporate" ] && ! grep -q insteadOf "$GIT_LOCAL_CONFIG" 2>/dev/null; then
+    {
+        echo ""
+        echo "[url \"https://github.com/\"]"
+        echo "    insteadOf = git@github.com:"
+    } >> "$GIT_LOCAL_CONFIG"
 fi
 
 echo "Updating dotfiles from remote..."
@@ -238,6 +259,11 @@ echo "Setting up symlinks..."
 chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
 if ! "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE"; then
     record_failure "dotbot symlinks"
+fi
+
+if [ "$DOTFILES_PROFILE" = "corporate" ] && [ -e "$HOME/.claude/CLAUDE.md" ] && [ ! -L "$HOME/.claude/CLAUDE.md" ]; then
+    echo "${YELLOW}Note:${RESET} ~/.claude/CLAUDE.md is pre-provisioned - not overwriting."
+    echo "      To pull in the dotfiles rules, append to it:  @$SRC_DIR/config/claude/CLAUDE.md"
 fi
 
 # --- Install Packages ---
@@ -298,7 +324,8 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
         for plist in "$dir"/*.plist; do
             [ -f "$plist" ] || continue
             name=$(basename "$plist")
-            label=$(basename "$name" .plist)
+            label=$(/usr/libexec/PlistBuddy -c 'Print :Label' "$plist" 2>/dev/null)
+            [ -n "$label" ] || label=$(basename "$name" .plist)
             target="$HOME/Library/LaunchAgents/$name"
             if [ ! -e "$target" ]; then
                 echo "${YELLOW}Warning:${RESET} $target not linked, skipping"
