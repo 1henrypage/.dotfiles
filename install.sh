@@ -284,6 +284,24 @@ fi
 # not call terminate by name - it inlines the same banner and calls the exit builtin directly,
 # which cannot be shadowed the way a same-named function can.
 if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+    # Guard against moving the user's real zshenv/zshrc aside when dotbot cannot run to put the
+    # replacement symlinks back. lib/dotbot is a submodule RUNME.sh's initial clone never fetches
+    # (non-recursive) - it only shows up once the submodule update above succeeds. That update is
+    # non-fatal on failure (record_failure only), so a network/submodule failure there would
+    # otherwise fall straight through into the mv loop below with no dotbot binary on disk to
+    # replace what it moves. Same shadow-proof abort as below: inline banner + exit, not terminate.
+    if [ ! -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
+        echo "${RED}Error:${RESET} $DOTBOT_DIR/$DOTBOT_BIN is missing - dotbot cannot run yet."
+        echo "         This almost always means the 'git submodule update' step above failed (network"
+        echo "         issue, HTTPS rewrite problem, etc.) and the lib/dotbot submodule was never fetched."
+        echo "         Refusing to move your existing ~/.zshenv / ~/.zshrc aside, since dotbot wouldn't be"
+        echo "         able to symlink their replacements back in - your existing files are untouched."
+        echo "         Resolve the submodule fetch (e.g. re-run install.sh --corporate, or run"
+        echo "         'git submodule update --init --recursive $DOTBOT_DIR' by hand), then re-run install.sh --corporate."
+        make_banner "Installation failed. Terminating..." "$RED"
+        exit 1
+    fi
+
     PRESERVE_FAILED="false"
     for rc in zshenv zshrc; do
         target="$HOME/.$rc"
