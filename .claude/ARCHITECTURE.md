@@ -35,12 +35,14 @@ A clean machine comes up like this:
      the full profile system.
    - The **`--dry-run` block** prints the resolved profile, Brewfile paths, the macOS/tool scripts
      that would run, and a dotbot `-n` (dry-run) preview of the symlink set, then `exit 0` —
-     nothing below this block executes. If `lib/dotbot` isn't initialised yet it inits just that
-     submodule first (same corporate/personal `insteadOf` split as the real submodule update, no
-     `--remote`) so the preview can run on a machine that hasn't bootstrapped.
+     nothing below this block executes. If `lib/dotbot` isn't initialised yet, the symlink preview
+     is skipped with a warning instead — `--dry-run` no longer initialises the submodule itself,
+     since that's a real network fetch and working-tree write that broke its "prints only, changes
+     nothing" contract.
    - Sources `config/zsh/.zshenv` early — *before* the tools that file's PATH lines reference
-     (rustup, bob, brew) necessarily exist. See §6 for the unconditional `rustup` line that errors
-     here on a fresh box.
+     (rustup, bob, brew) necessarily exist. The rustup PATH line used to invoke `rustup` directly
+     here and could error on a fresh box; see §6 — it now reads `~/.rustup/settings.toml` instead
+     and never invokes `rustup` at all.
    - `system_verify` hard-requires only **`git`**; `zsh`/`vim`/`nvim`/`tmux` are warn-only.
    - The **git-identity block**: if `~/.config/git/local` doesn't exist yet (or still contains the
      `CHANGEME` stub), reads name + email from **`/dev/tty`** (not stdin — the README install path
@@ -113,8 +115,8 @@ each need their own block). See §9 for how `if:` gating on `DOTFILES_PROFILE` w
 
 | Target | Source | Notes |
 |---|---|---|
-| `~/.zshenv` | `config/zsh/.zshenv` | **`force: true`** |
-| `~/.zshrc` | `config/zsh/.zshrc` | **`force: true`** |
+| `~/.zshenv` | `config/zsh/.zshenv` | **`force: true`** (both profiles) — corporate moves a real pre-existing file aside to `~/.zshenv.local` first, so only personal is genuinely destructive here, see §9 |
+| `~/.zshrc` | `config/zsh/.zshrc` | **`force: true`** (both profiles) — same `~/.zshrc.local` move-aside on corporate, see §9 |
 | `~/.tmux/plugins/tpm` | `lib/tpm` | submodule |
 | `~/.tmux.conf` | `config/tmux/tmux.conf` | |
 | `~/.claude` | `config/claude` | **personal only** (`if: DOTFILES_PROFILE = personal`), **`force: true`** — live global Claude Code state. No separate `~/.claude/skills` entry exists: `config/claude/skills` is itself a **tracked symlink** (`-> ../skills`), so force-linking `~/.claude` here already makes `~/.claude/skills` resolve through to `config/skills` for free — see §5. A dotbot entry for that path used to exist and fought the tracked symlink on every run (rewriting it from relative to absolute); removed for that reason. |
@@ -128,7 +130,7 @@ each need their own block). See §9 for how `if:` gating on `DOTFILES_PROFILE` w
 | `${XDG_CONFIG_HOME}/nvim` | `config/nvim` | submodule |
 | `${XDG_CONFIG_HOME}/kitty` | `config/kitty` | |
 | `${XDG_CONFIG_HOME}/starship.toml` | `config/general/starship.toml` | |
-| `${HOME}/.gitconfig` | `config/general/.gitconfig` | |
+| `${HOME}/.gitconfig` | `config/general/.gitconfig` | existence-guarded (`if:` requires the path doesn't exist **or** is already a symlink) — same pattern as `~/AGENTS.md`, no `force` |
 | `${XDG_CONFIG_HOME}/.gitignore_global` | `config/general/.gitignore_global` | |
 | `~/Library/LaunchAgents/` | `config/macos/LaunchAgents/common/*` | Darwin-gated, `glob: true`, both profiles |
 | `~/Library/LaunchAgents/` | `config/macos/LaunchAgents/personal/*` | Darwin + personal gated, `glob: true` — second `link:` block |
@@ -278,10 +280,12 @@ the working tree**. Don't `git add -A` here — you'll try to commit live sessio
 Documented so an agent neither trusts them nor "helpfully" fixes working things. **Verify before
 relying; fixing them is out of scope for a docs task** — flag to the user instead.
 
-- **`.zshenv` PATH line is fragile.** `.zshenv:52` unconditionally runs
-  `rustup show active-toolchain` inside a PATH assignment — it **errors on a machine without
-  rustup** (the guarded variant right below is commented out, `:54-55`). `.zshenv` also uses
-  bash-only `[[ … ]]` (`:32,39,46,58`), which breaks if a Linux `/bin/sh` is `dash`.
+- ~`.zshenv`'s PATH line unconditionally ran `rustup show active-toolchain` inside a PATH
+  assignment, erroring on a machine without rustup~ — fixed: it now reads `default_toolchain`
+  straight out of `~/.rustup/settings.toml` instead of invoking `rustup` at all, which also avoids
+  rustup's auto-install of a full toolchain (~1.3GB) on a plain `source` — confirmed to trigger
+  even through a `rust-toolchain.toml` override pinning an uninstalled channel. `.zshenv` still
+  uses bash-only `[[ … ]]` (`:32,39,46,58`), which breaks if a Linux `/bin/sh` is `dash`.
 - **zsh alias bugs** (`config/zsh/aliases/general.zsh`):
   - `dotfiles` / `dots` (`:117-118`) point at `${DOTFILES_DIR:-$HOME/Documents/config/dotfiles}` —
     but `DOTFILES_DIR` is never set and the repo actually lives at `~/.dotfiles`, so the alias
@@ -300,6 +304,12 @@ relying; fixing them is out of scope for a docs task** — flag to the user inst
 ~Karabiner writes backups into the repo~ and ~LaunchAgents are symlinked but never loaded~ —
 both resolved by the `--corporate` install-profile change (§9): Karabiner is deleted outright, and
 `install.sh` now runs `launchctl bootstrap` over every linked agent.
+
+~`--dry-run` initialised `lib/dotbot` (a real network fetch) just to run the symlink preview~ —
+resolved: when the submodule isn't present yet, `--dry-run` now skips the preview with a warning
+instead, keeping it genuinely side-effect-free (§1). `${HOME}/.gitconfig` (§2, §9) is now
+existence-guarded the same way as `~/AGENTS.md`, so a pre-provisioned `~/.gitconfig` is skipped
+with a message instead of hard-failing the whole dotbot run.
 
 ---
 
@@ -406,10 +416,10 @@ fetches need the same treatment: `install.sh`'s git-identity block writes `~/.co
 help here anyway, because on corporate the submodule update is invoked with the rewrite passed
 **inline** — `git -c url."https://github.com/".insteadOf="git@github.com:" submodule update
 --recursive --remote --init` — rather than relying on the persisted config file. This sidesteps an
-ordering trap: `~/.gitconfig` isn't linked by dotbot until later in the run, and it isn't
-`force: true` either, so a real file materializing there first would make the dotbot symlink step
-fail. The persisted `~/.config/git/local` rule (written with the `insteadOf` block appended,
-corporate only) still covers any submodule work done by hand later.
+ordering trap: `~/.gitconfig` isn't linked by dotbot until later in the run, and isn't
+`force: true` either — now existence-guarded (§2), so a real file materializing there first is
+skipped instead of failing the dotbot step. The persisted `~/.config/git/local` rule (written with
+the `insteadOf` block appended, corporate only) still covers any submodule work done by hand later.
 
 **This assumes the repo (and its submodules) stay public.** Neither `RUNME.sh`'s HTTPS clone nor
 `install.sh`'s `git pull origin main` (still fatal via `terminate`) has a credential source on a
@@ -446,7 +456,21 @@ always, `personal/*` glob-linked only off-corporate — since a single glob `lin
 from two different directories at once. `~/AGENTS.md` gets the same existence guard as
 `~/.claude/CLAUDE.md`, on **both** profiles (it's in the first `link:` block, ungated on
 `DOTFILES_PROFILE`) — a real pre-existing `~/AGENTS.md` survives rather than failing the whole
-dotbot run.
+dotbot run. `${HOME}/.gitconfig` (§2) now uses the same existence-guard pattern, also on both
+profiles, so a pre-provisioned `~/.gitconfig` is skipped with a message instead of hard-failing
+the install.
+
+**`~/.zshenv`/`~/.zshrc` no longer lose corporate content to `force: true`.** Both stay `force:
+true` on **both** profiles (§2) — dotbot's own link definition doesn't gate this by
+`DOTFILES_PROFILE` — but `install.sh` now runs a preprocessing step immediately before the dotbot
+call, corporate only: for each of `~/.zshenv`/`~/.zshrc`, if the target exists and is a **real**
+file (not already a symlink, so the step is a no-op on a second run), it's moved aside to
+`<target>.local` before dotbot force-links the repo's version over it. `config/zsh/.zshenv` and
+`.zshrc` each source their `.local` sibling as their last line, so any IT-managed content (proxy
+settings, internal registry auth) from the original file still runs, and wins on any conflicting
+assignment made earlier in the repo's own file. Personal is unaffected by this step and remains
+genuinely destructive on `force: true`, same as `~/.claude` above — there's no pre-existing
+content worth protecting on the user's own machine.
 
 **Karabiner is gone on both profiles**, replaced by `scripts/macos/common/macos-keyremap.sh`
 (hidutil, see §3) and its LaunchAgent — no cask, no kernel extension, no Input Monitoring prompt.
