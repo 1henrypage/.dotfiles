@@ -37,12 +37,17 @@ The single most confusing thing about this repo. They are unrelated:
 ## Footguns (destructive / surprising)
 
 - **`force: true` symlinks destroy pre-existing files.** `~/.zshenv`, `~/.zshrc`, and (on the
-  **personal** profile only) `~/.claude` and `~/.agents/skills` are `force: true` → dotbot
-  `rm`/`rmtree`s any real file or dir already at that path, **no backup, no prompt**. Adopting
-  these dotfiles on a machine that already has a real `~/.claude` **destroys it**. The
-  **corporate** profile (`install.sh --corporate`) does not take this path at all — it links
-  `~/.claude/CLAUDE.md` (existence-guarded) and per-skill globs under `~/.claude/skills/` +
-  `~/.agents/skills/`, all without `force`, so a real pre-existing `~/.claude` survives.
+  **personal** profile only) `~/.claude` and `~/.agents/skills` are `force: true` -> dotbot
+  `rm`/`rmtree`s any real file or dir already at that path, **no backup, no prompt**, by default.
+  On the **corporate** profile, `install.sh` now moves a pre-existing real `~/.zshenv` or
+  `~/.zshrc` aside to a `.local` sibling *before* dotbot's force-link runs, and the repo's
+  `.zshenv`/`.zshrc` source that sibling last, so corporate content survives (see
+  `ARCHITECTURE.md` §9). On the **personal** profile they are still destroyed outright, with no
+  such move-aside step. Adopting these dotfiles on a machine that already has a real `~/.claude`
+  **destroys it** on the personal profile. The **corporate** profile does not force-link
+  `~/.claude` at all - it links `~/.claude/CLAUDE.md` (existence-guarded) and per-skill globs
+  under `~/.claude/skills/` + `~/.agents/skills/`, all without `force`, so a real pre-existing
+  `~/.claude` survives.
 - **`clean: ['~', '${XDG_CONFIG_HOME}', '~/Library/LaunchAgents', '~/.claude/skills',
   '~/.agents/skills']`** (`symlinks.yaml:6`) deletes dangling symlinks under those roots on every
   run — the last two matter only on corporate, where skills are per-skill glob-links rather than
