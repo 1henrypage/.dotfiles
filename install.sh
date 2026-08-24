@@ -117,47 +117,6 @@ cleanup() {
 
 trap cleanup EXIT
 
-# Corporate machines often have IT-managed ~/.zshenv / ~/.zshrc (proxy settings, internal
-# registry auth). symlinks.yaml force-links both, which would otherwise destroy them with no
-# backup. Move any real (non-symlink) file aside first, preserving its content - the repo's
-# config/zsh/.zshenv and .zshrc each source the .local file back in as their last line, so
-# nothing IT-managed is lost. Idempotent: once the target is already a symlink (i.e. this has
-# already run), skip it.
-#
-# Must run before dotbot below, and before config/zsh/.zshenv is sourced further down: that
-# sourcing chain ends by sourcing ~/.zshenv.local (the very file preserved here), and since `.`
-# sourcing runs in this same shell process, a function named terminate defined anywhere in that
-# chain would silently replace ours, turning the abort below into a no-op. Guarded against
-# DRY_RUN here too, since dry-run used to exit before ever reaching this block further down the
-# script and must still change nothing on disk.
-if [ "$DOTFILES_PROFILE" = "corporate" ] && [ "$DRY_RUN" != "true" ]; then
-    PRESERVE_FAILED="false"
-    for rc in zshenv zshrc; do
-        target="$HOME/.$rc"
-        if [ -e "$target" ] && [ ! -L "$target" ]; then
-            if [ -e "${target}.local" ] || [ -L "${target}.local" ]; then
-                echo "${RED}Warning:${RESET} ${target}.local already exists - refusing to overwrite it with $target."
-                echo "         Resolve the two by hand, then re-run."
-                record_failure "preserve $target (${target}.local already exists)"
-                PRESERVE_FAILED="true"
-                continue
-            fi
-            echo "${YELLOW}Note:${RESET} preserving pre-existing $target as ${target}.local"
-            if ! mv "$target" "${target}.local"; then
-                echo "${RED}Warning:${RESET} failed to move $target to ${target}.local."
-                record_failure "preserve $target (mv failed)"
-                PRESERVE_FAILED="true"
-            fi
-        fi
-    done
-    if [ "$PRESERVE_FAILED" = "true" ]; then
-        echo "${RED}Error:${RESET} could not safely preserve your existing zshenv/zshrc - aborting before dotbot runs."
-        echo "         Any file already reported above as preserved to a .local path is safe and untouched there."
-        echo "         Only the failure(s) listed above still need manual resolution - resolve them by hand, then re-run install.sh --corporate."
-        terminate
-    fi
-fi
-
 # Load environment variables from zshenv
 if [ -f "$SRC_DIR/config/zsh/.zshenv" ]; then
     . "$SRC_DIR/config/zsh/.zshenv" || terminate
@@ -307,6 +266,50 @@ if [ "$DOTFILES_PROFILE" = "corporate" ]; then
             fi
         done
     done
+fi
+
+# Corporate machines often have IT-managed ~/.zshenv / ~/.zshrc (proxy settings, internal
+# registry auth). symlinks.yaml force-links both, which would otherwise destroy them with no
+# backup. Move any real (non-symlink) file aside first, preserving its content - the repo's
+# config/zsh/.zshenv and .zshrc each source the .local file back in as their last line, so
+# nothing IT-managed is lost. Idempotent: once the target is already a symlink (i.e. this has
+# already run), skip it.
+#
+# Must run immediately before dotbot below, after git pull / submodule update / etc above have
+# already succeeded - so a failure in any of those earlier steps leaves the user's real
+# zshenv/zshrc completely untouched instead of moved aside with no symlink yet in place to
+# replace them. By this point config/zsh/.zshenv (and transitively ~/.zshenv.local) has already
+# been sourced into this same shell process, so a function named terminate defined anywhere in
+# that chain could silently shadow install.sh's own terminate(). The abort below therefore does
+# not call terminate by name - it inlines the same banner and calls the exit builtin directly,
+# which cannot be shadowed the way a same-named function can.
+if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+    PRESERVE_FAILED="false"
+    for rc in zshenv zshrc; do
+        target="$HOME/.$rc"
+        if [ -e "$target" ] && [ ! -L "$target" ]; then
+            if [ -e "${target}.local" ] || [ -L "${target}.local" ]; then
+                echo "${RED}Warning:${RESET} ${target}.local already exists - refusing to overwrite it with $target."
+                echo "         Resolve the two by hand, then re-run."
+                record_failure "preserve $target (${target}.local already exists)"
+                PRESERVE_FAILED="true"
+                continue
+            fi
+            echo "${YELLOW}Note:${RESET} preserving pre-existing $target as ${target}.local"
+            if ! mv "$target" "${target}.local"; then
+                echo "${RED}Warning:${RESET} failed to move $target to ${target}.local."
+                record_failure "preserve $target (mv failed)"
+                PRESERVE_FAILED="true"
+            fi
+        fi
+    done
+    if [ "$PRESERVE_FAILED" = "true" ]; then
+        echo "${RED}Error:${RESET} could not safely preserve your existing zshenv/zshrc - aborting before dotbot runs."
+        echo "         Any file already reported above as preserved to a .local path is safe and untouched there."
+        echo "         Only the failure(s) listed above still need manual resolution - resolve them by hand, then re-run install.sh --corporate."
+        make_banner "Installation failed. Terminating..." "$RED"
+        exit 1
+    fi
 fi
 
 echo "Setting up symlinks..."
