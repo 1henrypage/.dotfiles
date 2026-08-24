@@ -171,9 +171,14 @@ if [ "$DRY_RUN" = "true" ]; then
 
     echo ""
     echo "Symlinks (dotbot dry run, DOTFILES_PROFILE=$DOTFILES_PROFILE):"
-    if [ -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
-        [ -x "$DOTBOT_DIR/$DOTBOT_BIN" ] || chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
+    if [ -f "$DOTBOT_DIR/$DOTBOT_BIN" ] && [ -x "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
         "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE" -n
+    elif [ -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
+        # --dry-run must be side-effect-free, so unlike the real run below, we do NOT
+        # chmod it executable here - that's a filesystem permission change, which breaks
+        # the "prints only, changes nothing" contract of --dry-run.
+        echo "  ${YELLOW}Warning:${RESET} $DOTBOT_DIR/$DOTBOT_BIN exists but is not executable; skipping symlink preview."
+        echo "  Run install.sh for real once, or 'chmod +x $DOTBOT_DIR/$DOTBOT_BIN' yourself, then re-run --dry-run."
     else
         # --dry-run must be side-effect-free, so unlike the real run below, we do NOT
         # `git submodule update` here - that's a network fetch + working-tree write, which
@@ -273,8 +278,17 @@ if [ "$DOTFILES_PROFILE" = "corporate" ]; then
     for rc in zshenv zshrc; do
         target="$HOME/.$rc"
         if [ -e "$target" ] && [ ! -L "$target" ]; then
+            if [ -e "${target}.local" ]; then
+                echo "${RED}Warning:${RESET} ${target}.local already exists - refusing to overwrite it with $target."
+                echo "         Resolve the two by hand, then re-run."
+                record_failure "preserve $target (${target}.local already exists)"
+                continue
+            fi
             echo "${YELLOW}Note:${RESET} preserving pre-existing $target as ${target}.local"
-            mv "$target" "${target}.local"
+            if ! mv "$target" "${target}.local"; then
+                echo "${RED}Warning:${RESET} failed to move $target to ${target}.local - dotbot will force-link over it next."
+                record_failure "preserve $target (mv failed)"
+            fi
         fi
     done
 fi

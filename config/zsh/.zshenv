@@ -58,7 +58,13 @@ fi
 # about whether a default toolchain is configured. Skip entirely - no PATH entry, no rustup
 # invocation - when none is configured yet.
 _rustup_home="${RUSTUP_HOME:-$HOME/.rustup}"
-if [[ -f "$_rustup_home/settings.toml" ]]; then
+# Prefer an explicit RUSTUP_TOOLCHAIN override when set and its toolchain is installed - cheap,
+# zero-risk, no rustup invocation. rust-toolchain.toml directory-level overrides are
+# intentionally NOT resolved here: that requires walking up the cwd tree and is exactly the
+# auto-install trigger this whole block exists to avoid.
+if [[ -n "$RUSTUP_TOOLCHAIN" && -d "$_rustup_home/toolchains/$RUSTUP_TOOLCHAIN/bin" ]]; then
+  export PATH="$_rustup_home/toolchains/$RUSTUP_TOOLCHAIN/bin:$PATH"
+elif [[ -f "$_rustup_home/settings.toml" ]]; then
   _rustup_default_toolchain="$(sed -n 's/^default_toolchain = "\(.*\)"$/\1/p' "$_rustup_home/settings.toml")"
   if [[ -n "$_rustup_default_toolchain" && -d "$_rustup_home/toolchains/$_rustup_default_toolchain/bin" ]]; then
     export PATH="$_rustup_home/toolchains/$_rustup_default_toolchain/bin:$PATH"
