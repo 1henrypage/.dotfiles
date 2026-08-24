@@ -275,22 +275,31 @@ fi
 # nothing IT-managed is lost. Must run before dotbot below. Idempotent: once the target is
 # already a symlink (i.e. this has already run), skip it.
 if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+    PRESERVE_FAILED="false"
     for rc in zshenv zshrc; do
         target="$HOME/.$rc"
         if [ -e "$target" ] && [ ! -L "$target" ]; then
-            if [ -e "${target}.local" ]; then
+            if [ -e "${target}.local" ] || [ -L "${target}.local" ]; then
                 echo "${RED}Warning:${RESET} ${target}.local already exists - refusing to overwrite it with $target."
                 echo "         Resolve the two by hand, then re-run."
                 record_failure "preserve $target (${target}.local already exists)"
+                PRESERVE_FAILED="true"
                 continue
             fi
             echo "${YELLOW}Note:${RESET} preserving pre-existing $target as ${target}.local"
             if ! mv "$target" "${target}.local"; then
-                echo "${RED}Warning:${RESET} failed to move $target to ${target}.local - dotbot will force-link over it next."
+                echo "${RED}Warning:${RESET} failed to move $target to ${target}.local."
                 record_failure "preserve $target (mv failed)"
+                PRESERVE_FAILED="true"
             fi
         fi
     done
+    if [ "$PRESERVE_FAILED" = "true" ]; then
+        echo "${RED}Error:${RESET} could not safely preserve your existing zshenv/zshrc - aborting before dotbot runs."
+        echo "         No changes have been made to your existing ~/.zshenv or ~/.zshrc."
+        echo "         Resolve the failure(s) noted above by hand, then re-run install.sh --corporate."
+        terminate
+    fi
 fi
 
 echo "Setting up symlinks..."
