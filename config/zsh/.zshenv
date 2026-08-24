@@ -48,18 +48,34 @@ if [[ -d "$CARGO_HOME/bin" ]]; then
 fi
 
 
-# Point binaries to brew THIS MIGHT NEED TO BE CHANGED TO SUPPORT ARCH
-export PATH="$HOME/.rustup/toolchains/$(rustup show active-toolchain | cut -d' ' -f1)/bin:$PATH"
-
-#if command -v rustup >/dev/null 2>&1; then
-#fi
+# Point binaries to the active rustup toolchain THIS MIGHT NEED TO BE CHANGED TO SUPPORT ARCH
+#
+# Read the default toolchain straight out of rustup's settings.toml instead of asking rustup
+# (e.g. via `rustup show active-toolchain`) - resolving the active toolchain is what triggers
+# rustup's auto-install of a full toolchain (~1.3GB), and it does this even for a plain `show`
+# if $PWD (or an ancestor) has a rust-toolchain.toml override pinning an uninstalled channel.
+# `command -v rustup` alone (the old guard here) doesn't help: the binary existing says nothing
+# about whether a default toolchain is configured. Skip entirely - no PATH entry, no rustup
+# invocation - when none is configured yet.
+_rustup_home="${RUSTUP_HOME:-$HOME/.rustup}"
+if [[ -f "$_rustup_home/settings.toml" ]]; then
+  _rustup_default_toolchain="$(sed -n 's/^default_toolchain = "\(.*\)"$/\1/p' "$_rustup_home/settings.toml")"
+  if [[ -n "$_rustup_default_toolchain" && -d "$_rustup_home/toolchains/$_rustup_default_toolchain/bin" ]]; then
+    export PATH="$_rustup_home/toolchains/$_rustup_default_toolchain/bin:$PATH"
+  fi
+  unset _rustup_default_toolchain
+fi
+unset _rustup_home
 
 # Neovim (bob)
 if [[ -d "$XDG_DATA_HOME/bob/nvim-bin" ]]; then
   export PATH="$XDG_DATA_HOME/bob/nvim-bin:$PATH"
 fi
 
-
-
-
+# Corporate installs move a pre-existing ~/.zshenv aside to ~/.zshenv.local instead of
+# overwriting it (see install.sh) so nothing IT-managed is lost. Source it last so it wins on
+# any conflicting assignment above.
+if [[ -f "$HOME/.zshenv.local" ]]; then
+  source "$HOME/.zshenv.local"
+fi
 

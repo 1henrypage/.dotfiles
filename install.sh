@@ -138,7 +138,7 @@ echo "Profile: $DOTFILES_PROFILE"
 
 if [ "$DRY_RUN" = "true" ]; then
     echo ""
-    echo "${YELLOW}Dry run - no config will be changed.${RESET} (lib/dotbot may still be initialised below so the symlink preview can run.)"
+    echo "${YELLOW}Dry run - no config will be changed.${RESET} (symlink preview is skipped if lib/dotbot isn't initialised yet - dry-run never fetches it.)"
 
     echo ""
     echo "Brewfiles:"
@@ -171,21 +171,15 @@ if [ "$DRY_RUN" = "true" ]; then
 
     echo ""
     echo "Symlinks (dotbot dry run, DOTFILES_PROFILE=$DOTFILES_PROFILE):"
-    if [ ! -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
-        echo "  (initialising $DOTBOT_DIR so the preview can run)"
-        # --recursive: dotbot's own nested pyyaml submodule, required just to import it.
-        # No --remote: a preview doesn't need the drift fast-forward.
-        if [ "$DOTFILES_PROFILE" = "corporate" ]; then
-            git -c url."https://github.com/".insteadOf="git@github.com:" submodule update --init --recursive "$DOTBOT_DIR" || true
-        else
-            git submodule update --init --recursive "$DOTBOT_DIR" || true
-        fi
-    fi
     if [ -f "$DOTBOT_DIR/$DOTBOT_BIN" ]; then
         [ -x "$DOTBOT_DIR/$DOTBOT_BIN" ] || chmod +x "$DOTBOT_DIR/$DOTBOT_BIN"
         "$DOTBOT_DIR/$DOTBOT_BIN" -d . -c "$SYMLINK_FILE" -n
     else
-        echo "  ${YELLOW}Warning:${RESET} dotbot unavailable; skipping symlink preview."
+        # --dry-run must be side-effect-free, so unlike the real run below, we do NOT
+        # `git submodule update` here - that's a network fetch + working-tree write, which
+        # breaks the "prints only, changes nothing" contract of --dry-run.
+        echo "  ${YELLOW}Warning:${RESET} $DOTBOT_DIR not initialised; skipping symlink preview (dry-run performs no git fetch)."
+        echo "  Run 'git submodule update --init --recursive $DOTBOT_DIR' first to see the preview, or drop --dry-run."
     fi
 
     exit 0
@@ -266,6 +260,22 @@ if [ "$DOTFILES_PROFILE" = "corporate" ]; then
                 echo "      - dotbot will fail on it. Resolve by hand, then re-run."
             fi
         done
+    done
+fi
+
+# Corporate machines often have IT-managed ~/.zshenv / ~/.zshrc (proxy settings, internal
+# registry auth). symlinks.yaml force-links both, which would otherwise destroy them with no
+# backup. Move any real (non-symlink) file aside first, preserving its content - the repo's
+# config/zsh/.zshenv and .zshrc each source the .local file back in as their last line, so
+# nothing IT-managed is lost. Must run before dotbot below. Idempotent: once the target is
+# already a symlink (i.e. this has already run), skip it.
+if [ "$DOTFILES_PROFILE" = "corporate" ]; then
+    for rc in zshenv zshrc; do
+        target="$HOME/.$rc"
+        if [ -e "$target" ] && [ ! -L "$target" ]; then
+            echo "${YELLOW}Note:${RESET} preserving pre-existing $target as ${target}.local"
+            mv "$target" "${target}.local"
+        fi
     done
 fi
 

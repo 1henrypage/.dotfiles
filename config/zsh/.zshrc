@@ -26,7 +26,10 @@ eval "$(zoxide init zsh)"
 eval "$(starship init zsh)"
 eval "$(jenv init -)"
 
-
-
-
+# Corporate installs move a pre-existing ~/.zshrc aside to ~/.zshrc.local instead of
+# overwriting it (see install.sh) so nothing IT-managed is lost. Source it last so it wins on
+# any conflicting assignment above.
+if [[ -f "$HOME/.zshrc.local" ]]; then
+  source "$HOME/.zshrc.local"
+fi
 

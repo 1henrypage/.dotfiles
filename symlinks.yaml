@@ -46,7 +46,9 @@
     ${XDG_CONFIG_HOME}/starship.toml: config/general/starship.toml
 
     # Utility config files
-    ${HOME}/.gitconfig: config/general/.gitconfig
+    ${HOME}/.gitconfig:
+      if: '[ ! -e "$HOME/.gitconfig" ] || [ -L "$HOME/.gitconfig" ]'
+      path: config/general/.gitconfig
     ${XDG_CONFIG_HOME}/.gitignore_global: config/general/.gitignore_global
 
     # MacOS-Only
