@@ -8,7 +8,6 @@ alias_not_used () {
 }
 
 if alias_not_used a; then; alias a='alias'; fi
-if alias_not_used c; then; alias c='clear'; fi
 if alias_not_used e; then; alias e='exit'; fi
 if alias_not_used f; then; alias f='find'; fi
 if alias_not_used g; then; alias g='grep'; fi
@@ -110,8 +109,11 @@ alias ports='netstat -tulanp' # Show open ports
 
 # App Specific
 if command_exists code ; then; alias vsc='code .'; fi # Launch VS Code in current dir
-if command_exists claude ; then; alias cld='claude --dangerously-skip-permissions --model opusplan --effort xhigh'; fi # Claude Code with skip perms
-if command_exists omnigent ; then; alias og='omnigent claude --dangerously-skip-permissions --model opusplan --effort xhigh'; fi # Claude Code via Omnigent terminal, skip perms
+alias c='claude --permission-mode auto --model opusplan --effort xhigh' # Claude Code, auto perms
+alias x='codex --model gpt-5.6-sol --approve-for-me -c model_reasoning_effort="xhigh"' # Codex, auto perms
+alias ogc='omnigent claude --permission-mode auto --model opusplan --effort xhigh' # Claude Code via Omnigent terminal, auto perms
+alias ogx='omnigent codex --model gpt-5.6-sol --approve-for-me -c model_reasoning_effort="xhigh"' # Codex via Omnigent terminal, auto perms
+alias ogo='omnigent opencode --model moonshotai/kimi-k3 --auto' # OpenCode via Omnigent terminal, skip perms
 
 # Alias for install script
 alias dotfiles="${DOTFILES_DIR:-$HOME/Documents/config/dotfiles}/install.sh"

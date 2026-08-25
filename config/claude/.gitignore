@@ -7,11 +7,13 @@ paste-cache/
 plans/
 plugins/
 projects/
+sessions/
 tasks/
 todos/
 shell-snapshots/
 telemetry/
 backups/
 
+daemon.log
 stats-cache.json
 mcp-needs-auth-cache.json

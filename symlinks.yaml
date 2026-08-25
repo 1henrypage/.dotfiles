@@ -3,7 +3,7 @@
       create: true
       relink: true
 
-- clean: ['~', '${XDG_CONFIG_HOME}']
+- clean: ['~', '${XDG_CONFIG_HOME}', '~/Library/LaunchAgents', '~/.claude/skills', '~/.agents/skills']
 
 # Symlink locations for files / directories
 - link:
@@ -13,9 +13,23 @@
     ~/.zshrc: { path: config/zsh/.zshrc, force: true }
     ~/.tmux/plugins/tpm: lib/tpm
     ~/.tmux.conf: config/tmux/tmux.conf
-    ~/.claude: { path: config/claude, force: true }
-    ~/.claude/skills: { path: config/skills, force: true }
-    ~/.agents/skills: { path: config/skills, force: true }
+
+    # ~/.claude - personal force-links the whole live global state wholesale to config/claude
+    # (this entry); corporate instead links only CLAUDE.md + skills, without force, so
+    # pre-provisioned enterprise auth/settings survive - see the second `link:` block below.
+    # There is deliberately no separate ~/.claude/skills entry here: config/claude/skills is
+    # itself a tracked symlink (-> ../skills), so force-linking ~/.claude to config/claude above
+    # already makes ~/.claude/skills resolve to config/skills for free. A second dotbot entry
+    # for that path would fight the tracked symlink - see .claude/ARCHITECTURE.md §5.
+    ~/.claude:
+      if: '[ "$DOTFILES_PROFILE" = personal ]'
+      path: config/claude
+      force: true
+
+    ~/.agents/skills:
+      if: '[ "$DOTFILES_PROFILE" = personal ]'
+      path: config/skills
+      force: true
     # omnigent's own runtime dir (~/.omnigent) holds live daemon/session
     # state (chat.db, daemons/, logs/, artifacts/) we must never touch, so
     # unlike ~/.claude it is NOT force-symlinked wholesale. Only the plans/
@@ -23,29 +37,48 @@
     # PLAN skill's output persists in dotfiles across machines without any
     # risk of clobbering existing runtime data.
     ~/.omnigent/plans: config/omnigent/plans
-    ~/AGENTS.md: config/claude/CLAUDE.md
+    ~/AGENTS.md:
+      if: '[ ! -e "$HOME/AGENTS.md" ] || [ -L "$HOME/AGENTS.md" ]'
+      path: config/claude/CLAUDE.md
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/kitty: config/kitty
-    ${XDG_CONFIG_HOME}/karabiner: config/karabiner
     ${XDG_CONFIG_HOME}/starship.toml: config/general/starship.toml
 
     # Utility config files
-    ${HOME}/.gitconfig: config/general/.gitconfig
+    ${HOME}/.gitconfig:
+      if: '[ ! -e "$HOME/.gitconfig" ] || [ -L "$HOME/.gitconfig" ]'
+      path: config/general/.gitconfig
     ${XDG_CONFIG_HOME}/.gitignore_global: config/general/.gitignore_global
 
     # MacOS-Only
     #${XDG_CONFIG_HOME}/yabai/yabairc:
     #  if: '[ `uname` = Darwin ]'
     #  path: config/macos/yabairc
-    ~/.Brewfile:
-      if: '[ `uname` = Darwin ]'
-      path: scripts/installs/Brewfile
     ~/Library/LaunchAgents/:
       if: '[ `uname` = Darwin ]'
-      path: config/macos/LaunchAgents/*
+      path: config/macos/LaunchAgents/common/*
       glob: true
-    
+
+# Profile-split variants. Split into a second `link:` block because dotbot's YAML mapping keys
+# must be unique per block - these targets already appear (gated the other way) above.
+- link:
+    ~/.claude/CLAUDE.md:
+      if: '[ "$DOTFILES_PROFILE" = corporate ] && { [ ! -e "$HOME/.claude/CLAUDE.md" ] || [ -L "$HOME/.claude/CLAUDE.md" ]; }'
+      path: config/claude/CLAUDE.md
+    ~/.claude/skills/:
+      if: '[ "$DOTFILES_PROFILE" = corporate ]'
+      path: config/skills/*
+      glob: true
+    ~/.agents/skills/:
+      if: '[ "$DOTFILES_PROFILE" = corporate ]'
+      path: config/skills/*
+      glob: true
+    ~/Library/LaunchAgents/:
+      if: '[ `uname` = Darwin ] && [ "$DOTFILES_PROFILE" = personal ]'
+      path: config/macos/LaunchAgents/personal/*
+      glob: true
+
 # If not already present, create home directories
 - create:
     - ~/Downloads

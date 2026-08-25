@@ -1,12 +1,11 @@
-[user]
-	name = Henry Page
-	email = dev@henrypage.com
+[include]
+    path = ~/.config/git/local
 
 [init]
     defaultBranch = main
 
 [pull]
-    # Disable this if it gets annoying 
+    # Disable this if it gets annoying
     rebase = true
 
 [core]

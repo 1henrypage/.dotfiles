@@ -153,8 +153,7 @@ Repeat until only the adversarial-review issue remains open:
 - On each worker's exit: **ignore the exit code** (omnigent exits 0 even on
   model failure - the error is only in the log). Judge by the worktree:
   commits exist on the issue branch, tree is clean, and gates pass via
-  `$WT run <branch> "<project gates>"` (prefer the project's `no-mistakes`
-  pipeline when configured).
+  `$WT run <branch> "<project gates>"`.
   - Success: `bd close <id> --reason "<one-line summary>"`. Mandatory - the
     close is what unblocks the merger.
   - Failure: `$WT reset -f <branch> epic/<epic-id>` (ref explicit - wt's
