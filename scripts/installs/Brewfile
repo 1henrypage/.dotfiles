@@ -45,9 +45,6 @@ brew 'node'
 brew 'go'
 # TODO fix other language configurations later
 
-# Cryptography and SSL/TLS Toolkit
-brew 'openssl'
-
 # Media
 brew 'ffmpeg'        # Video/audio converter
 
