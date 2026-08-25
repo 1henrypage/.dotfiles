@@ -7,6 +7,7 @@ cask_args appdir: '~/Applications', require_sha: true
 
 # Misc
 brew 'tailscale'      # VPN client; conflicts with corporate VPN
+cask 'tailscale-app'  # Tailscale menu bar GUI
 
 # DevOps
 brew 'container'         # Containers - paid subscription above 250 employees, IT provisions/forbids on corporate
