@@ -19,7 +19,6 @@ cask 'wireshark'      # Network analyzer + packet capture
 
 # CASKS
 cask 'postman'        # HTTP API testing app; syncs collections to Postman cloud by default
-cask 'docker-desktop'
 cask 'zotero'             # Paper/Citations manager
 cask 'claude'
 cask 'macfuse'            # This is required for rclone on mac
