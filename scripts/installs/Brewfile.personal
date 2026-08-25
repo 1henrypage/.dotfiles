@@ -34,3 +34,12 @@ cask 'telegram'       # Telegram
 
 # Mac OS Mods and Imrovments
 cask 'stats'          # System resource usage in menubar
+
+#############################################################
+# AI coding agent CLIs                                      #
+#############################################################
+
+# Corporate runs Databricks' own provisioned Claude Code, so these agent-CLI installs are personal-only
+brew 'omnigent-ai/tap/omnigent' # Meta-harness orchestrating AI coding agents (Claude Code, Codex, Cursor, etc.)
+brew 'anomalyco/tap/opencode' # AI coding agent CLI
+cask 'claude-code'

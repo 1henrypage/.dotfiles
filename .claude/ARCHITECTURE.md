@@ -395,8 +395,8 @@ it (`:92`) before doing anything else. Three consumers read it:
   corporate box shouldn't get silently upgraded by this script) and the second `brew bundle
   install --file=` call against `Brewfile.personal` (personal only) directly on the same check.
 
-**The package split.** `scripts/installs/Brewfile` (base, 32 brews + 6 casks) installs on both
-profiles; `scripts/installs/Brewfile.personal` (3 brews + 15 casks) only on personal. Both carry
+**The package split.** `scripts/installs/Brewfile` (base, 30 brews + 5 casks) installs on both
+profiles; `scripts/installs/Brewfile.personal` (5 brews + 17 casks) only on personal. Both carry
 their own `cask_args appdir: '~/Applications', require_sha: true` header since each is passed to
 `brew bundle install --file=` independently — there's no shared "global" Brewfile context anymore.
 Four casks (`karabiner-elements`, `intellij-idea`, `pycharm`, `aldente`) and one brew (`tlrc`) are
@@ -405,8 +405,9 @@ deleted outright, on both profiles, as unused. Personal-only: `transmission` (to
 `discord`/`spotify`/`iina` (social/media), `zotero` + `macfuse` + the rclone LaunchAgent (personal
 cloud mount; macfuse is a kernel extension), `nmap`/`wireshark` (packet capture), `docker-desktop`
 + `container` (the work Mac gets no local container runtime at all), `stats`, `postman` (syncs
-collections to Postman's cloud by default), `claude` desktop app (`claude-code` is base), and the
-`macos-openwhispr.sh` / `macos-power.sh` scripts (below).
+collections to Postman's cloud by default), `claude` desktop app, the AI coding agent CLIs
+(`claude-code` + `omnigent` + `opencode`; corporate uses Databricks' own provisioned Claude
+Code), and the `macos-openwhispr.sh` / `macos-power.sh` scripts (below).
 
 **Corporate bootstrap is HTTPS, not SSH.** There's no personal SSH key on a fresh corporate laptop.
 `RUNME.sh` clones `https://github.com/1henrypage/.dotfiles.git` instead of the `git@github.com:`

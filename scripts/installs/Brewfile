@@ -23,8 +23,6 @@ brew 'watch'        # Run commands periorically
 brew 'zoxide'       # Auto-learning navigation (better cd)
 brew 'starship'     # Prompt
 brew 'beads'        # Agentic issue tracker
-brew 'omnigent-ai/tap/omnigent' # Meta-harness orchestrating AI coding agents (Claude Code, Codex, Cursor, etc.)
-brew 'anomalyco/tap/opencode' # AI coding agent CLI
 brew 'sesh'         # Smart tmux session manager (zoxide-backed)
 brew 'lazygit'      # Terminal UI for git (tmux popup)
 brew 'bc'           # Arbitrary-precision calc (tokyo-night-tmux widgets)
@@ -36,7 +34,6 @@ brew 'coreutils'    # GNU coreutils (tokyo-night-tmux widgets)
 cask 'visual-studio-code' # Code editor
 cask 'kitty'              # GPU Accelerated Terminal Emulator
 cask 'sublime-text'       # Text editor, will migrate off this soon
-cask 'claude-code'
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'
