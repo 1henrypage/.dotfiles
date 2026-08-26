@@ -25,11 +25,9 @@ Retuning a role is a one-line edit to this table (e.g. flip implementer's
 harness/model to `codex` / `gpt-5.6-terra`). Nothing else needs to change -
 `/plan` and `/swarm` read the table at runtime.
 
-**Effort is documented intent, not a live dial.** Honored on the codex path
-(the bridge copies `$CODEX_HOME/config.toml` into each session; codex reads
-`model_reasoning_effort` from it). Dropped on the `omnigent run` Claude path,
-which has no `--reasoning-effort` flag. Keep it static; don't build machinery
-on this column until `omnigent run` carries effort through.
+**Effort is a default, not a floor.** Drop a role to `medium` for a clearly
+easy task where the harness exposes the dial (codex, via
+`$CODEX_HOME/config.toml`); where it doesn't, leave it at the table value.
 
 ## Dispatch recipe (headless, via the omnigent CLI)
 
