@@ -5,7 +5,7 @@
     "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-5",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5"
   },
-  "model": "opusplan",
+  "model": "opus",
   "hooks": {},
   "enabledPlugins": {
     "lua-lsp@claude-plugins-official": true
