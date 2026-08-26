@@ -1,6 +1,6 @@
 ---
 name: swarm
-description: Execute an approved /plan as a beads epic, MapReduce-style - parallel implementer agents in their own git worktrees, a mechanical git merge plus a quick interaction-review agent at each fan-in, a scribe after each merge, an adversarial reviewer at the end (capped at 2 fix cycles), all dispatched headlessly via the omnigent CLI with roles/models from agent-roles. Use when the user says "execute the plan", "run the swarm", "implement the approved plan", invokes /swarm, or gives the go-ahead after a /plan approval gate.
+description: Execute an approved /plan as a beads epic, MapReduce-style - parallel implementers in their own git worktrees, a mechanical merge plus an interaction review at each fan-in, a scribe after each merge, an adversarial reviewer at the end (capped at 2 cycles), dispatched headlessly via the omnigent CLI with roles from agent-roles. Use when the user says "execute the plan", "run the swarm", "implement the approved plan", invokes /swarm, or gives the go-ahead after a /plan approval gate.
 user-invocable: true
 ---
 
@@ -129,10 +129,9 @@ role table and dispatch recipe. Then preflight, failing fast on any miss:
 `git branch epic/<epic-id> <base>` then `$WT add epic/<epic-id>`. (The
 two-step is deliberate: `wt add` alone bases a brand-new branch on the
 primary worktree's HEAD, or silently tracks a same-named remote branch -
-pre-creating the branch pins the base.) Create it **once per epic** and keep
-it for the epic's whole life - it is where the wave fan-in merges land
-(mechanically, orchestrator-run - step 4) and where the quick-review agent
-runs. `<base>` is never checked out or written.
+pre-creating the branch pins the base.) Create it once per epic and keep it:
+the fan-in merges land here and the integration reviewer runs here (step 4).
+`<base>` is never checked out or written.
 
 ### 4. Wave loop
 
@@ -173,30 +172,24 @@ Repeat until only the adversarial-review issue remains open:
     -m "merge bd/<issue-id>-<slug> into epic/<epic-id>"
   ```
 
-  **No LLM is involved in this step.** The plan guarantees disjoint file
-  scopes within a wave, so git's three-way merge resolves these
-  automatically - milliseconds, against implementer runs measured in
-  minutes. Merge in whatever order branches finish; don't wait for the whole
-  wave to complete before starting.
-  - **If a merge does not apply cleanly**, the plan's disjointness assumption
-    broke for that pair of tasks. `git merge --abort`, resolve it yourself
-    via the `resolving-merge-conflicts` skill, and note it in the handoff. If
-    it happens twice in one epic, stop and re-scope the offending tasks' file
-    boundaries with the human - the graph is wrong, not the merge. Do not
-    design the happy path around this case.
-- **Fan-in part (b) - quick review (the `integration-reviewer` role).** Once
-  the wave's merges have landed, claim the wave's integration-review issue
-  and dispatch the `integration-reviewer` role *in the integration worktree*,
-  scoped strictly to **cross-agent interaction correctness**: do the seams
-  between the parallel tasks hold - shared interfaces, API calls and their
-  callers, wiring, types that crossed a task boundary. It does **not**
-  re-review each task's code line by line (that is the adversarial reviewer's
-  job at the end), and it does **not**
-  run git operations - the merges already happened. Then run the gates:
-  `$WT run epic/<epic-id> "<project gates>"`. If the review finds a broken
-  seam or the gates fail, file it as a fix issue in the next wave rather than
-  letting the reviewer patch it in place. Verify, then the orchestrator
-  closes the integration-review issue - that close is what releases wave N+1.
+  No agent, no LLM: disjoint file scopes within a wave mean git's three-way
+  merge resolves these automatically. Merge in whatever order branches
+  finish; don't wait for the whole wave.
+  - **A merge that doesn't apply cleanly** means the plan's disjointness
+    assumption broke for that pair. `git merge --abort`, resolve it via the
+    `resolving-merge-conflicts` skill, note it in the handoff. Twice in one
+    epic: stop and re-scope the offending tasks' file boundaries with the
+    human - the graph is wrong, not the merge.
+- **Fan-in part (b) - quick review (`integration-reviewer`).** Once the
+  wave's merges land, claim the wave's integration-review issue and dispatch
+  the role *in the integration worktree*, scoped strictly to **cross-agent
+  interaction correctness**: do the seams hold - shared interfaces, API calls
+  and their callers, wiring, types crossing a task boundary. Not a
+  line-by-line re-review of each task (that's the adversarial reviewer), and
+  no git operations. Then run the gates:
+  `$WT run epic/<epic-id> "<project gates>"`. A broken seam or a failing gate
+  becomes a fix issue in the next wave, not an in-place patch. Verify, then
+  close the integration-review issue - that close releases wave N+1.
 - **Scribe issue** after the merge commit: dispatch serialized (never two
   scribes at once, so docs can't conflict), verify, close.
 
@@ -213,29 +206,22 @@ re-review.
 
 **The loop is capped at 2 fix cycles.** Record the count on the epic
 (`bd update <epic-id> --metadata '{"review_cycles": <n>}'`) so it survives a
-crash and resume - an uncapped review loop is the single easiest way to burn
-hours and tokens on diminishing returns. Exit conditions:
+crash and resume. Exit conditions:
 
-- **The adversary passes** - done, go to handoff. (Can happen on cycle 0,
-  i.e. the first review, with no fix wave at all.)
-- **Still blocking after the 2nd fix cycle** - **stop. Do not spawn a 3rd fix
-  wave.** `bd update <epic-id> --status blocked`, keep the epic branch and
-  its worktree exactly as they are, and hand the human: the outstanding
-  blocking findings, what each of the two fix cycles actually changed, and
-  the branch + worktree path. A finding that survives two honest attempts is
-  a judgment call - whether to accept it, re-scope it, or fix it by hand is
-  the human's decision, and getting them involved at cycle 2 is the point of
-  the cap, not a failure mode.
+- **Adversary passes** - done, go to handoff (can happen on the first review,
+  with no fix wave at all).
+- **Still blocking after the 2nd fix cycle** - **stop. No 3rd fix wave.**
+  `bd update <epic-id> --status blocked`, leave the epic branch and its
+  worktree as they are, and hand the human the outstanding findings, what
+  each cycle changed, and the branch + worktree path.
 
 ### 6. Handoff
 
-- Close the epic issue - **unless** the adversary is still blocking at the
-  2-cycle cap (step 5), in which case the epic stays `blocked` and the report
-  below *is* the handoff.
+- Close the epic issue, unless the adversary is still blocking at the 2-cycle
+  cap (step 5) - then it stays `blocked` and the report below is the handoff.
 - Report: epic status (`bd epic status <epic-id>`), gate results, adversary
-  verdict (passed, or blocked at the 2-cycle cap with the outstanding
-  findings and what each cycle changed), and the integration branch +
-  worktree path.
+  verdict (passed, or blocked at the cap with the outstanding findings and
+  what each cycle changed), and the integration branch + worktree path.
 - Clean up **merged** implementer worktrees: `$WT rm -y -f <branch>` (`-y`
   also deletes the per-issue branch - intended, the work lives in the epic
   branch's merge commits; `-f` so stray untracked artifacts can't wedge

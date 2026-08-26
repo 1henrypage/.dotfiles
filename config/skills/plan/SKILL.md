@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Planning-mode skill - before touching any code, fan out parallel read-only explorers to map the codebase, grill the human through the task decomposition decision-by-decision, then write a plan whose task breakdown is a parallelism-maximized dependency graph (waves of disjoint tasks, explicit integration-review/scribe/adversarial-review tasks, roles from agent-roles) ready for /swarm to execute as a beads epic. Saves the plan + graph artifact under ~/.omnigent/plans and stops for human approval. Use when the user asks to plan first, wants a plan before code, says "don't code yet", "just plan this out", "come up with a plan", invokes /plan, or hands over a feature/refactor/bugfix big enough to deserve a written plan.
+description: Planning mode - fan out parallel read-only explorers, grill the human through the decomposition, then write a plan whose task breakdown is a parallelism-maximized dependency graph (waves of disjoint tasks, roles from agent-roles) ready for /swarm to execute as a beads epic. Saves plan + graph under ~/.omnigent/plans and stops for approval. Use when the user asks to plan first, says "don't code yet", "just plan this out", "come up with a plan", invokes /plan, or hands over work big enough to deserve a written plan.
 user-invocable: true
 ---
 
@@ -72,15 +72,14 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
    - Every fan-in bottleneck becomes an explicit **integration-review task**
      with one `blocks` dependency per sibling task in its wave (never
      `waits-for` - `bd dep add` doesn't offer it; fixed fan-ins are wired as
-     plain `blocks` edges). The git merge itself is mechanical and
-     orchestrator-run, so this task is purely the **quick cross-agent
-     interaction review** that runs after those merges land (see
-     `agent-roles`). Title it that way - not "merge wave N".
+     plain `blocks` edges). The git merge is mechanical and orchestrator-run,
+     so this task is purely the quick cross-agent interaction review that
+     runs after those merges land (see `agent-roles`); title it as a review,
+     not a merge.
    - **Every wave N+1 task gets a `blocks` dep on wave N's integration-review
-     task.** This edge stays load-bearing even though the integration reviewer
-     no longer writes to the branch: wave N+1's branches are cut from
-     `epic/<epic-id>`, so they must not be created until wave N's merges have
-     landed on it and the seams between them have been reviewed.
+     task.** Wave N+1's branches are cut from `epic/<epic-id>`, so they must
+     not be created until wave N's merges have landed on it and the seams
+     between them have been reviewed.
    - A **scribe task** (docs/changelog) follows each merge, blocking on the
      integration-review task.
    - One final **adversarial-review task** blocks on everything else.
