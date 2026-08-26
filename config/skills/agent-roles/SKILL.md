@@ -1,6 +1,6 @@
 ---
 name: agent-roles
-description: Role registry for the plan/swarm multi-agent workflows - the single place that maps each swarm role (planner, explorer, implementer, merger, adversarial-reviewer, scribe) to a harness, model, and reasoning effort, plus the omnigent dispatch recipe every orchestrator uses. Read this when planning role assignments, dispatching workers, or retuning which model a role runs on.
+description: Maps each /plan and /swarm role (planner, explorer, implementer, integration-reviewer, adversarial-reviewer, scribe) to a harness, model, and reasoning effort, plus the omnigent dispatch recipe. Read when assigning roles, dispatching workers, or retuning which model a role runs on.
 ---
 
 # agent-roles
@@ -14,16 +14,20 @@ omnigent orchestrator via `discover_host_skills` - reads the same table.
 
 | Role | Harness | Model | Effort | Purpose | Notes |
 |---|---|---|---|---|---|
-| planner | (whatever runs `/plan`) | claude-fable-5 | xhigh | Decompose the feature into a parallelism-maximized dependency graph | Not dispatched via worker.yaml; it is the session running `/plan` |
-| explorer | claude-sdk | claude-sonnet-5 | medium | Read-only codebase investigation during planning | Many narrow explorers beat few broad ones |
-| implementer | claude-sdk | claude-sonnet-5 | medium | Implement one issue in its own worktree | Swap to qwen/kimi here once those CLIs are installed and authed |
-| merger | claude-sdk | claude-opus-5 | high | Merge a wave's branches into the epic integration branch, resolve conflicts, run gates | Uses the `resolving-merge-conflicts` skill |
-| adversarial-reviewer | claude-sdk | claude-fable-5 | xhigh | Attack the finished epic diff against the plan's acceptance criteria | Blocking findings become new issues in a fix wave |
+| planner | (whatever runs `/plan`) | claude-opus-5 | max | Decompose the feature into a parallelism-maximized dependency graph | Not dispatched via worker.yaml; it is the session running `/plan` |
+| explorer | claude-sdk **or** codex | claude-sonnet-5 **or** gpt-5.6-luna | high | Read-only codebase investigation during planning | Many narrow explorers beat few broad ones. Alternate vendors across angles (angle 1 -> Sonnet, angle 2 -> Luna, ...); pair both on one angle only for high-stakes questions worth the extra spend |
+| implementer | claude-sdk | claude-sonnet-5 | high | Implement one issue in its own worktree | |
+| integration-reviewer | claude-sdk | claude-sonnet-5 | medium | Quick cross-agent interaction review after a wave's branches land on the epic branch | Checks seams only: shared interfaces, API calls and their callers, wiring, types crossing a task boundary. Runs no git operations - the merge is mechanical and orchestrator-run (`/swarm` step 4) |
+| adversarial-reviewer | codex | gpt-5.6-sol | max | Attack the finished epic diff against the plan's acceptance criteria | Blocking findings become new issues in a fix wave, capped at 2 cycles before deferring to the human (`/swarm` step 5) |
 | scribe | claude-sdk | claude-sonnet-5 | medium | Update docs/changelogs after each merge | Serialized (one at a time) so docs never conflict |
 
 Retuning a role is a one-line edit to this table (e.g. flip implementer's
-harness/model to `qwen` / a qwen model once `qwen` is on PATH and logged in).
-Nothing else needs to change - `/plan` and `/swarm` read the table at runtime.
+harness/model to `codex` / `gpt-5.6-terra`). Nothing else needs to change -
+`/plan` and `/swarm` read the table at runtime.
+
+**Effort is a default, not a floor.** Drop a role to `medium` for a clearly
+easy task where the harness exposes the dial (codex, via
+`$CODEX_HOME/config.toml`); where it doesn't, leave it at the table value.
 
 ## Dispatch recipe (headless, via the omnigent CLI)
 
@@ -65,10 +69,12 @@ without re-deriving them. On each issue (beads treats these `execution_*` keys
 as authoritative dispatch hints):
 
 - `execution_agent_type`: the role name from the table
-  (e.g. `implementer`, `merger`, `adversarial-reviewer`, `scribe`)
+  (e.g. `implementer`, `integration-reviewer`, `adversarial-reviewer`,
+  `scribe`)
 - `execution_suggested_model`: the model id from the table
 - `execution_reasoning_effort`: the effort from the table
 - `execution_parallel_group`: the wave number
 
-`bd create -t` has no merger/reviewer/scribe issue type - those issues are
-plain `task`s distinguished solely by `execution_agent_type`.
+`bd create -t` has no integration-reviewer/adversarial-reviewer/scribe issue
+type - those issues are plain `task`s distinguished solely by
+`execution_agent_type`.

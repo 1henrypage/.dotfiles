@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Planning-mode skill - before touching any code, fan out parallel read-only explorers to map the codebase, grill the human through the task decomposition decision-by-decision, then write a plan whose task breakdown is a parallelism-maximized dependency graph (waves of disjoint tasks, explicit merger/scribe/adversarial-review tasks, roles from agent-roles) ready for /swarm to execute as a beads epic. Saves the plan + graph artifact under ~/.omnigent/plans and stops for human approval. Use when the user asks to plan first, wants a plan before code, says "don't code yet", "just plan this out", "come up with a plan", invokes /plan, or hands over a feature/refactor/bugfix big enough to deserve a written plan.
+description: Planning mode - fan out parallel read-only explorers, grill the human through the decomposition, then write a plan whose task breakdown is a parallelism-maximized dependency graph (waves of disjoint tasks, roles from agent-roles) ready for /swarm to execute as a beads epic. Saves plan + graph under ~/.omnigent/plans and stops for approval. Use when the user asks to plan first, says "don't code yet", "just plan this out", "come up with a plan", invokes /plan, or hands over work big enough to deserve a written plan.
 user-invocable: true
 ---
 
@@ -69,19 +69,24 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
      merges hard and serializes work.
    - **Minimize graph depth, maximize width.** Every dependency edge must be
      justified; an unjustified edge costs a whole wave of parallelism.
-   - Every fan-in bottleneck becomes an explicit **merger task** with one
-     `blocks` dependency per sibling task in its wave (never `waits-for` -
-     `bd dep add` doesn't offer it; fixed fan-ins are wired as plain `blocks`
-     edges).
-   - **Every wave N+1 task gets a `blocks` dep on wave N's merger task.**
-     Without this, `bd ready` releases the next wave while the merger is
-     still mutating the shared integration branch.
+   - Every fan-in bottleneck becomes an explicit **integration-review task**
+     with one `blocks` dependency per sibling task in its wave (never
+     `waits-for` - `bd dep add` doesn't offer it; fixed fan-ins are wired as
+     plain `blocks` edges). The git merge is mechanical and orchestrator-run,
+     so this task is purely the quick cross-agent interaction review that
+     runs after those merges land (see `agent-roles`); title it as a review,
+     not a merge.
+   - **Every wave N+1 task gets a `blocks` dep on wave N's integration-review
+     task.** Wave N+1's branches are cut from `epic/<epic-id>`, so they must
+     not be created until wave N's merges have landed on it and the seams
+     between them have been reviewed.
    - A **scribe task** (docs/changelog) follows each merge, blocking on the
-     merger task.
+     integration-review task.
    - One final **adversarial-review task** blocks on everything else.
-   - Each task gets a role from `agent-roles` and a wave number. Merger,
-     scribe, and review tasks are type `task` with the role recorded in
-     `execution_agent_type` metadata (beads has no such issue types).
+   - Each task gets a role from `agent-roles` and a wave number.
+     Integration-review, scribe, and adversarial-review tasks are type `task`
+     with the role recorded in `execution_agent_type` metadata (beads has no
+     such issue types).
 
 6. **Write the plan document** (adapt sections to the task, keep the gate):
    - **Goal** - the outcome in the user's own terms.
@@ -89,7 +94,8 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
    - **Approach** - the chosen approach; alternatives briefly, and why they
      lost.
    - **Task breakdown** - the wave-by-wave graph: per task its title, scope
-     (files), acceptance criteria, role, wave; mergers/scribes/review listed
+     (files), acceptance criteria, role, wave; integration reviews, scribes,
+     and the adversarial review listed
      explicitly. This is what `/swarm` executes.
    - **Files / areas touched** - per task; verify disjointness here.
    - **Integration base branch** - the grilled decision from step 4; `/swarm`
@@ -119,8 +125,10 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
                       "execution_suggested_model": "<from agent-roles>",
                       "execution_reasoning_effort": "<from agent-roles>",
                       "execution_parallel_group": "1"}},
-       {"key": "m1", "type": "task", "title": "merge wave 1", "parent": "epic",
-        "metadata": {"execution_agent_type": "merger", "...": "..."}}
+       {"key": "m1", "type": "task", "title": "wave 1 interaction review",
+        "parent": "epic",
+        "metadata": {"execution_agent_type": "integration-reviewer",
+                     "...": "..."}}
      ],
      "edges": [
        {"from_key": "m1", "to_key": "t1", "type": "blocks"}
@@ -135,7 +143,8 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
 
 8. **Generate the HTML dependency preview**: a self-contained (no external
    assets) HTML visualization at `/tmp/<slug>-graph.html` - waves as
-   horizontal layers, one node per task, mergers and the adversarial reviewer
+   horizontal layers, one node per task, integration reviews and the
+   adversarial reviewer
    visually highlighted, edges drawn between layers. Reference its path from
    the plan doc so the human can eyeball the parallelization before
    approving.
