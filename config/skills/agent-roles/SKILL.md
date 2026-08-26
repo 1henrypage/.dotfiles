@@ -16,14 +16,14 @@ omnigent orchestrator via `discover_host_skills` - reads the same table.
 |---|---|---|---|---|---|
 | planner | (whatever runs `/plan`) | claude-opus-5 | max | Decompose the feature into a parallelism-maximized dependency graph | Not dispatched via worker.yaml; it is the session running `/plan` |
 | explorer | claude-sdk **or** codex | claude-sonnet-5 **or** gpt-5.6-luna | high | Read-only codebase investigation during planning | Many narrow explorers beat few broad ones. Alternate vendors across angles (angle 1 -> Sonnet, angle 2 -> Luna, ...); pair both on one angle only for high-stakes questions worth the extra spend |
-| implementer | claude-sdk | claude-sonnet-5 | high | Implement one issue in its own worktree | Swap to qwen/kimi here once those CLIs are installed and authed |
+| implementer | claude-sdk | claude-sonnet-5 | high | Implement one issue in its own worktree | |
 | integration-reviewer | claude-sdk | claude-sonnet-5 | medium | Quick cross-agent interaction review after a wave's branches land on the epic branch | Checks seams only: shared interfaces, API calls and their callers, wiring, types crossing a task boundary. Runs no git operations - the merge is mechanical and orchestrator-run (`/swarm` step 4) |
 | adversarial-reviewer | codex | gpt-5.6-sol | max | Attack the finished epic diff against the plan's acceptance criteria | Blocking findings become new issues in a fix wave, capped at 2 cycles before deferring to the human (`/swarm` step 5) |
 | scribe | claude-sdk | claude-sonnet-5 | medium | Update docs/changelogs after each merge | Serialized (one at a time) so docs never conflict |
 
 Retuning a role is a one-line edit to this table (e.g. flip implementer's
-harness/model to `qwen` / a qwen model once `qwen` is on PATH and logged in).
-Nothing else needs to change - `/plan` and `/swarm` read the table at runtime.
+harness/model to `codex` / `gpt-5.6-terra`). Nothing else needs to change -
+`/plan` and `/swarm` read the table at runtime.
 
 **Effort is documented intent, not a live dial.** Honored on the codex path
 (the bridge copies `$CODEX_HOME/config.toml` into each session; codex reads
