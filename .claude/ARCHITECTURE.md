@@ -140,9 +140,8 @@ matters because the Brewfile sets `cask_args appdir: '~/Applications'` (`Brewfil
 sets `require_sha: true`), so casks and (on personal) `macos-openwhispr.sh` install there rather
 than `/Applications`.
 
-`${XDG_CONFIG_HOME}/karabiner` and `~/.Brewfile` are gone — see §9 (Karabiner is replaced by
-hidutil on both profiles; the Brewfile split means one symlink can no longer describe the truth,
-`install.sh` now calls `brew bundle --file=` directly instead).
+`~/.Brewfile` is gone — the Brewfile split means one symlink can no longer describe the truth,
+`install.sh` now calls `brew bundle --file=` directly instead.
 
 The commented-out `yabairc` block is dormant.
 
@@ -171,14 +170,9 @@ These configs are entangled; changing one in isolation breaks another.
   management is tmux's, per the config's own "Force windows/tabs through tmux" comment. The tab
   bar is hidden (`tab_bar_style hidden`).
 - **Prefix is `C-a`** (`tmux.conf:38`, `C-b` unbound `:35`). Prefixless `M-1`..`M-9` jump windows
-  (`tmux.conf:86-94`). Those Alt chords reach tmux through **one** mechanism, not two: kitty's
-  `macos_option_as_alt left` (`kitty.conf:9`) does 100% of the work. There used to be a Karabiner
-  rule rewriting `left_option → left_alt` at the system level too, but Karabiner's own
-  `simple_modifications.json` labels `left_alt` as *"equal to `left_option`"* — a PC-style alias
-  for the same physical key, not a distinct target — so that rule was always a no-op layered on
-  top of kitty's remap, never a second remap in the chain. Karabiner is gone now (see §9); the
-  backtick/tilde remap it also carried is reimplemented via `hidutil` in
-  `scripts/macos/common/macos-keyremap.sh`, which has no bearing on Option/Alt at all.
+  (`tmux.conf:86-94`). Those Alt chords reach tmux through kitty's `macos_option_as_alt left`
+  (`kitty.conf:9`) — the only mechanism involved. The backtick/tilde swap is a separate, unrelated
+  remap via `hidutil` in `scripts/macos/personal/macos-keyremap.sh`.
 - **Seamless pane nav across tmux ⇄ nvim** is hand-rolled on the tmux side and plugin-driven on
   the nvim side: `tmux.conf` defines `is_vim` (`:49-50`) and forwards `C-h/j/k/l` / `M-h/j/k/l`
   conditionally (`:53-62`), while nvim uses `aserowy/tmux.nvim`
@@ -301,9 +295,8 @@ relying; fixing them is out of scope for a docs task** — flag to the user inst
   escaped `\$`, so `awk '{print $2}'` never closes the string early; the alias works. Recorded here
   as a correction, not re-added as a bug, since a wrong entry in this list is worse than no entry.
 
-~Karabiner writes backups into the repo~ and ~LaunchAgents are symlinked but never loaded~ —
-both resolved by the `--corporate` install-profile change (§9): Karabiner is deleted outright, and
-`install.sh` now runs `launchctl bootstrap` over every linked agent.
+~LaunchAgents are symlinked but never loaded~ — resolved: `install.sh` now runs `launchctl
+bootstrap` over every linked agent.
 
 ~`--dry-run` initialised `lib/dotbot` (a real network fetch) just to run the symlink preview~ —
 resolved: when the submodule isn't present yet, `--dry-run` now skips the preview with a warning
@@ -399,7 +392,7 @@ it (`:92`) before doing anything else. Three consumers read it:
 profiles; `scripts/installs/Brewfile.personal` (5 brews + 17 casks) only on personal. Both carry
 their own `cask_args appdir: '~/Applications', require_sha: true` header since each is passed to
 `brew bundle install --file=` independently — there's no shared "global" Brewfile context anymore.
-Four casks (`karabiner-elements`, `intellij-idea`, `pycharm`, `aldente`) and one brew (`tlrc`) are
+Three casks (`intellij-idea`, `pycharm`, `aldente`) and one brew (`tlrc`) are
 deleted outright, on both profiles, as unused. Personal-only: `transmission` (torrent), `tailscale`
 + `protonvpn` (VPN — would conflict with a corporate VPN anyway), `signal`/`whatsapp`/`telegram`/
 `discord`/`spotify`/`iina` (social/media), `zotero` + `macfuse` + the rclone LaunchAgent (personal
@@ -473,17 +466,15 @@ assignment made earlier in the repo's own file. Personal is unaffected by this s
 genuinely destructive on `force: true`, same as `~/.claude` above — there's no pre-existing
 content worth protecting on the user's own machine.
 
-**Karabiner is gone on both profiles**, replaced by `scripts/macos/common/macos-keyremap.sh`
-(hidutil, see §3) and its LaunchAgent — no cask, no kernel extension, no Input Monitoring prompt.
+The tilde/backtick remap is **personal profile only**:
+`scripts/macos/personal/macos-keyremap.sh` (hidutil, see §3) and its LaunchAgent — no cask, no
+kernel extension, no sudo. It's deliberately not in `common/`: this swaps two ISO-only keys, and
+doing that on an ANSI keyboard would make backtick untypeable. The corporate machine currently
+gets no remap at all. See the script's own comment for what it does and why.
 One limitation worth knowing: the LaunchAgent is `RunAtLoad` with no `KeepAlive`, and
-`hidutil property --set` only applies to devices already attached when it runs. So the remap
-covers the built-in keyboard from login onward, but an **external keyboard plugged in later does
-not get it** until the next login (or a manual re-run of the script). Karabiner reapplied its
-remap on device attach; this is a real, accepted regression versus the old setup, not an
-oversight. Note this describes what the *repo* installs going forward, not what's already on a
-machine: `brew uninstall --cask karabiner-elements` does not deregister SMAppService agents, stop
-root LaunchDaemons, or deactivate a DriverKit system extension the cask's installer registered
-outside Homebrew's bookkeeping — see the migration recipe below.
+`hidutil property --set` only applies to devices already attached when it runs, so an **external
+keyboard plugged in later does not get remapped** until the next login (or a manual re-run of the
+script).
 
 **LaunchAgents are now actually loaded**: `install.sh` runs `launchctl bootout` (ignoring failure —
 the agent may not be loaded yet) then `launchctl bootstrap gui/$(id -u)` over every plist linked
@@ -510,27 +501,22 @@ moved file, a new gate, a renamed target) on a machine that already ran an older
 one-time manual repair, not new install machinery - automating a repair path that only ever runs
 once per breaking change isn't worth the complexity. Precedent, from the `--corporate` split
 itself: the `personal/` LaunchAgents move orphaned `com.rclone.zotero.plist` (dotbot's `clean:`
-didn't cover `~/Library/LaunchAgents` at the time - since fixed, see the symlink map above), and
-the Karabiner removal left a stale `~/.config/karabiner` directory and an installed-but-configless
-`karabiner-elements` cask behind. Neither was fixed by a migration script: relink with the correct
-`DOTFILES_PROFILE` set so `clean:` reaps the dangling links, re-run the affected setup script
-directly (e.g. `DOTFILES_PROFILE=corporate sh scripts/macos/install.sh`, matching whatever profile
-the machine is actually on), reload the affected LaunchAgents with `launchctl bootout`/`bootstrap`,
-and `brew uninstall` whatever the package split left behind.
+didn't cover `~/Library/LaunchAgents` at the time - since fixed, see the symlink map above). The
+repair shape: relink with the correct `DOTFILES_PROFILE` set so `clean:` reaps the dangling links,
+re-run the affected setup script directly (e.g. `DOTFILES_PROFILE=corporate sh
+scripts/macos/install.sh`, matching whatever profile the machine is actually on), reload the
+affected LaunchAgents with `launchctl bootout`/`bootstrap`, and `brew uninstall` whatever the
+package split left behind.
 
-The Karabiner removal above understated one thing: `brew uninstall --cask karabiner-elements`
-only removes what Homebrew itself put down. Karabiner's *own* installer additionally registers a
-DriverKit system extension (`systemextensionsctl list`), a couple of **root** LaunchDaemons
-(`sudo launchctl list | grep -i karabiner`), and per-user agents via `SMAppService`
-(`launchctl list | grep -i karabiner`) - none of which `brew uninstall --cask` touches, and which
-persist as running processes even after the cask, the app bundle, and the agents' own binaries are
-long gone. So a fifth step belongs in this recipe whenever a breaking change removes a vendor app,
-not just a dotfiles-managed symlink: **check for vendor agents that self-register** -
-`launchctl list`, `systemextensionsctl list`, and `ps aux` - and remove them through the vendor's
-own uninstaller (or `launchctl bootout` + manual plist/binary removal for user agents) rather than
-assuming a Homebrew or dotbot cleanup step reaches them. Bare `systemextensionsctl uninstall` is
-SIP-gated and unreliable; prefer reinstalling the cask and running the vendor's bundled uninstaller
-before removing it again.
+Whenever a breaking change removes a vendor app entirely, add a fifth step: **check for vendor
+agents that self-register** - `launchctl list`, `systemextensionsctl list`, and `ps aux` - since a
+vendor's own installer can register a DriverKit system extension, root LaunchDaemons, or
+`SMAppService` user agents that persist as running processes even after the cask, the app bundle,
+and dotbot's own symlinks are gone. None of that is reached by `brew uninstall --cask` or dotbot's
+`clean:`; remove it through the vendor's own uninstaller (or `launchctl bootout` + manual
+plist/binary removal for user agents) rather than assuming a Homebrew or dotbot cleanup step
+reaches it. Bare `systemextensionsctl uninstall` is SIP-gated and unreliable; prefer reinstalling
+the cask and running the vendor's bundled uninstaller before removing it again.
 
 Reach for the same shape - relink, re-run the specific script, reload, check for self-registered
 vendor agents, uninstall - the next time a breaking change like this lands.

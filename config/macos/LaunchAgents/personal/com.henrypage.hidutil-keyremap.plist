@@ -7,10 +7,9 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/bin/hidutil</string>
-        <string>property</string>
-        <string>--set</string>
-        <string>{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":0x700000064,"HIDKeyboardModifierMappingDst":0x700000035}]}</string>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>exec "$HOME/.dotfiles/scripts/macos/personal/macos-keyremap.sh"</string>
     </array>
 
     <key>RunAtLoad</key>
