@@ -43,11 +43,15 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
    about the count; re-fan-out if the first wave surfaces contradictions or a
    bigger surface than expected.
 
+   Tell each explorer to hunt for **existing functions, utilities and patterns
+   that can be reused**, with file paths. Proposing new code where a suitable
+   implementation already exists is the most common way a plan goes wrong.
+
 3. **Synthesize, don't re-investigate.** Build the draft breakdown strictly
    from what the explorers found - their reports are the source of truth, not
    your own guesses.
 
-4. **Grill the human on the decomposition** (new, mandatory unless the user
+4. **Grill the human on the decomposition** (mandatory unless the user
    explicitly asks for a quick plan / no grilling): run a `/grilling` session
    focused on *human decomposition decisions*, one question at a time with a
    recommended answer per question. Walk past the human, decision by decision:
@@ -88,24 +92,9 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
      with the role recorded in `execution_agent_type` metadata (beads has no
      such issue types).
 
-6. **Write the plan document** (adapt sections to the task, keep the gate):
-   - **Goal** - the outcome in the user's own terms.
-   - **Current state** - what the explorers found, cited to files/areas.
-   - **Approach** - the chosen approach; alternatives briefly, and why they
-     lost.
-   - **Task breakdown** - the wave-by-wave graph: per task its title, scope
-     (files), acceptance criteria, role, wave; integration reviews, scribes,
-     and the adversarial review listed
-     explicitly. This is what `/swarm` executes.
-   - **Files / areas touched** - per task; verify disjointness here.
-   - **Integration base branch** - the grilled decision from step 4; `/swarm`
-     cuts `epic/<id>` from it and hands the result back onto it.
-   - **Dependency graph preview** - the path to the HTML visualization (step
-     8).
-   - **Risks & open questions** - anything unresolved or needing a human
-     call.
-   - **Verification strategy** - the gates each task/wave must pass.
-   - **Out of scope.**
+6. **Write the plan document** in the format below ("Plan document format").
+   It is prose for a human to read and an implementer to execute - not a spec
+   sheet. The machine-readable half is the graph artifact in step 7.
 
 7. **Write the machine-readable graph artifact** next to the plan:
    `~/.omnigent/plans/<same-stem>.graph.json`, shaped for `bd create --graph`
@@ -141,13 +130,16 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
    `acceptance`), `from_key`/`to_key` (not `from`/`to`); unknown fields are
    silently dropped with a warning.
 
+   **Per-task detail lives here, not in the prose.** `description` carries
+   everything the implementer needs to work alone; `acceptance_criteria`
+   carries the gates. The plan document does not repeat them.
+
 8. **Generate the HTML dependency preview**: a self-contained (no external
    assets) HTML visualization at `/tmp/<slug>-graph.html` - waves as
    horizontal layers, one node per task, integration reviews and the
-   adversarial reviewer
-   visually highlighted, edges drawn between layers. Reference its path from
-   the plan doc so the human can eyeball the parallelization before
-   approving.
+   adversarial reviewer visually highlighted, edges drawn between layers.
+   Reference its path from the plan doc so the human can eyeball the
+   parallelization before approving.
 
 9. **Persist to `~/.omnigent/plans/`** (symlinked to `config/omnigent/plans/`
    in the dotfiles, so plans survive across sessions and machines). Filename:
@@ -171,10 +163,120 @@ Explorer role defaults (model/effort) come from the `agent-roles` skill.
     turn - planning mode's whole point is a human checkpoint between "we know
     what to do" and "we're doing it".
 
+## Plan document format
+
+Write the plan the way Claude Code's own plan mode writes one. The rules below
+come from the plan-mode system prompt (CC 2.1.247, phase 4) and from the plan
+corpus in `~/.claude/plans/`.
+
+Only `# title`, `## Context`, `## Changes` and `## Verification` are
+mandatory. Add and drop the rest to fit the task; the section names below are
+the ones the corpus actually uses, so prefer them over inventing new ones.
+
+```markdown
+# <Imperative title naming the change: "Remove the three agent-workflow
+  commands from sh-treehouse", not "Plan for command removal">
+
+## Context
+
+<Why this change is being made: the problem or need it addresses, what
+prompted it, and the intended outcome. Prose paragraphs, not bullets. Where a
+paragraph carries the argument, lead it with a **bolded claim** and then
+justify it. This section is what makes the rest reviewable - a reader who
+disagrees with the plan usually disagrees here.>
+
+## Facts verified during exploration      <- optional
+
+<Load-bearing findings from the explorers, each cited to `path/file.ext:line`.
+Only facts actually checked. If something is inferred rather than verified,
+say so on the line.>
+
+## Decisions settled                      <- optional
+
+<The calls made during grilling, one line each, stated as settled decisions.>
+
+## Changes
+
+### 1. `path/to/file` - what changes here
+
+<Prose describing the change. Name the functions and line ranges. Point at
+existing helpers to reuse, with their paths. Small illustrative snippets are
+fine; full implementations are not. Call out adjacent things that must NOT
+change, inline, where the implementer will be tempted:>
+
+**Do not delete `__wt_is_dirty`** (`lib/wt-git.sh:89`) - still used by
+`__wt_print_ls_entry` (`wt-commands.sh:96`).
+
+### 2. `path/to/next` - ...
+
+## Files touched
+
+<Flat list grouped changed / created / deleted. This is where you verify wave
+disjointness, so it must be complete.>
+
+## Verification
+
+<Numbered steps with runnable commands and the expected result of each. Test
+end-to-end the way a user would hit it, not only unit tests. Name the gates
+(build, lint, typecheck, suite) and the expected counts where a count is the
+signal.>
+
+## Execution                              <- swarm plans only
+
+## Out of scope                           <- optional
+## Notes                                  <- optional
+```
+
+**Style rules:**
+
+- **Only the recommended approach.** Do not lay out alternatives and score
+  them. An option the human explicitly weighed during grilling earns one
+  clause in `## Decisions settled` saying why it lost; everything else that
+  was considered and rejected simply does not appear.
+- **Organize `## Changes` by file, numbered** - one subsection per file, or
+  per tightly-coupled pair. Not by abstract task, not by layer.
+- **Describe repeating patterns once.** Where one change repeats across many
+  files, state the pattern and give two or three representative paths. Never
+  enumerate every file and every line number.
+- **Cite as `path/file.ext:line`**, and name existing functions and utilities
+  to reuse rather than implying new ones.
+- **Concise enough to scan, detailed enough to execute.** The corpus runs
+  65-440 lines, median around 210. Materially longer usually means it is
+  enumerating what it should be describing.
+- **Prose over tables.** Tables only for genuinely tabular data (a volume
+  ledger, a package split). Do not tabulate tasks.
+- **No acceptance-criteria blocks, no per-task role/model labels, no
+  restatement of the graph.** That content belongs in `.graph.json`.
+
+**Where the swarm machinery goes.** `/swarm` reads the `.graph.json`, not this
+document: it loads the graph (`swarm/SKILL.md:90`), validates it with
+`bd create --graph --dry-run` (`:116`), takes roles and models from
+`execution_*` metadata (`:121`), and reads the base branch from the epic
+node's `integration_base` (`:99`). Nothing machine-parses the prose. So keep
+task IDs, roles, models, priorities and acceptance criteria out of the
+document, and give the human a short `## Execution` section instead:
+
+```markdown
+## Execution
+
+Integration base: `development` - `/swarm` cuts `epic/<id>` from it and hands
+the result back onto it.
+
+19 tasks in 6 waves, max width 6. Wave 2 writes the failing tests first, so
+every fix in waves 3+ has a test that demonstrably failed before it.
+
+- Graph: `~/.omnigent/plans/<stem>.graph.json`
+- Preview: `/tmp/<slug>-graph.html`
+```
+
+Tag each `### N.` subsection with its wave and role in bold at the end of its
+first line - `**wave 3, implementer**` - so a reader can see the parallel
+structure without a table.
+
 ## Solo fallback
 
 No sub-agents available: do a single, appropriately scoped read-only pass
 yourself (files, `git log`, existing docs), then still grill (step 4), apply
 the breakdown rules, write the plan + artifacts, and stop for approval. Say
-plainly in "Current state" that the findings weren't cross-checked by
-independent explorers, so the human knows it carries less confidence.
+plainly in "Context" that the findings weren't cross-checked by independent
+explorers, so the human knows it carries less confidence.

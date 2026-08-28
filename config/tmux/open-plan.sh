@@ -3,13 +3,13 @@ set -euo pipefail
 
 pane_id="${1:-}"
 cwd="${2:-$HOME}"
-plans_dir="$HOME/.claude/plans"
+plans_dirs=("$HOME/.claude/plans" "$HOME/.omnigent/plans")
 
 # 1) Read the plan path straight from the pane's visible TUI footer.
 plan=""
 if [ -n "$pane_id" ]; then
   plan="$(tmux capture-pane -p -t "$pane_id" 2>/dev/null \
-    | grep -oE '[^[:space:]]*\.claude/plans/[^[:space:]]+\.md' \
+    | grep -oE '[~/A-Za-z0-9._-]*\.(claude|omnigent)/plans/[^[:space:]]+\.md' \
     | tail -n 1 || true)"
 fi
 
@@ -20,12 +20,12 @@ esac
 
 # 2) Fallback: newest plan file (slug filenames have no spaces/newlines, so ls is safe).
 if [ -z "$plan" ] || [ ! -f "$plan" ]; then
-  plan="$(ls -t "$plans_dir"/*.md 2>/dev/null | head -n 1 || true)"
+  plan="$(ls -t "${plans_dirs[0]}"/*.md "${plans_dirs[1]}"/*.md 2>/dev/null | head -n 1 || true)"
 fi
 
 # 3) Nothing found -> tell the user in the status line, don't spawn an empty nvim.
 if [ -z "$plan" ] || [ ! -f "$plan" ]; then
-  tmux display-message "open-plan: no plan file found in $plans_dir"
+  tmux display-message "open-plan: no plan file found in ${plans_dirs[*]}"
   exit 0
 fi
 
