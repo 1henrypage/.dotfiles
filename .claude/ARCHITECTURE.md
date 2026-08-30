@@ -471,10 +471,15 @@ The tilde/backtick remap is **personal profile only**:
 kernel extension, no sudo. It's deliberately not in `common/`: this swaps two ISO-only keys, and
 doing that on an ANSI keyboard would make backtick untypeable. The corporate machine currently
 gets no remap at all. See the script's own comment for what it does and why.
-One limitation worth knowing: the LaunchAgent is `RunAtLoad` with no `KeepAlive`, and
-`hidutil property --set` only applies to devices already attached when it runs, so an **external
-keyboard plugged in later does not get remapped** until the next login (or a manual re-run of the
-script).
+One limitation worth knowing: `hidutil property --set` only applies to devices already attached
+when it runs, so a keyboard that (re)attaches afterward doesn't get remapped until the next
+apply. This bit in practice on the built-in keyboard, not just an external one: a sleep/wake cycle
+can reset its HID service, silently dropping the remap even though `hidutil property --get` still
+echoes back the last value set (that call just reports the stored property, not whether it's
+bound to the currently-live device). The LaunchAgent used to be `RunAtLoad` only, so this required
+a manual re-run of the script to fix. It now also carries `StartInterval` (30s), so launchd
+re-applies it periodically regardless of login/sleep state - `hidutil property --set` is
+idempotent and cheap, so the redundant re-applies are harmless.
 
 **LaunchAgents are now actually loaded**: `install.sh` runs `launchctl bootout` (ignoring failure —
 the agent may not be loaded yet) then `launchctl bootstrap gui/$(id -u)` over every plist linked
