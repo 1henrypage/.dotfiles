@@ -164,11 +164,16 @@ workspace and can't reach a `~/...` path outside it.
 
 These configs are entangled; changing one in isolation breaks another.
 
-- **kitty *is* the tmux frontend.** `kitty.conf:89` `shell tmux` → every kitty window launches
-  straight into tmux (no login shell). Native kitty tab/window keys are `no_op`'d
-  (`kitty.conf:72-83`: `cmd+t`, `cmd+shift+[`/`]`, `cmd+1`..`cmd+9`) so **all** window/tab
-  management is tmux's, per the config's own "Force windows/tabs through tmux" comment. The tab
-  bar is hidden (`tab_bar_style hidden`).
+- **kitty *is* the tmux frontend, via a login-shell exec, not a `shell` override.** kitty runs no
+  `shell` directive (deliberately — see the comment at the top of the `shell` section in
+  `kitty.conf`), so it launches the user's real login shell exactly as it resolves logins on any
+  platform. `.zshrc` then execs into tmux itself, guarded by `[[ -n "$KITTY_WINDOW_ID" && -z
+  "$TMUX" ]] && command -v tmux`, so every kitty window still ends up in tmux, just one hop later.
+  A missing `tmux` binary now degrades to a plain shell instead of kitty's "failed to launch
+  child: tmux" error — that failure mode is what this design removes. Native kitty tab/window keys
+  are still `no_op`'d (`kitty.conf`: `cmd+t`, `cmd+shift+[`/`]`, `cmd+1`..`cmd+9`) so **all**
+  window/tab management is tmux's, per the config's own "Force windows/tabs through tmux" comment.
+  The tab bar is hidden (`tab_bar_style hidden`).
 - **Prefix is `C-a`** (`tmux.conf:38`, `C-b` unbound `:35`). Prefixless `M-1`..`M-9` jump windows
   (`tmux.conf:86-94`). Those Alt chords reach tmux through kitty's `macos_option_as_alt left`
   (`kitty.conf:9`) — the only mechanism involved. The backtick/tilde swap is a separate, unrelated
@@ -192,16 +197,21 @@ These configs are entangled; changing one in isolation breaks another.
 - **`EDITOR`/`VISUAL` = `vim`** (`.zshenv:13-14`), but git's `core.editor = nvim`
   (`.gitconfig:12`). Different editors for shell vs git, and there's no `vim`→`nvim` bridging
   alias.
-- **tmux PATH + plugin path:** kitty's `shell tmux` gives the tmux server a truncated PATH (no
-  `/opt/homebrew/bin`, no `~/.local/bin`) and none of `.zshenv`'s exports, and `run-shell` itself
-  uses `/bin/sh`. Two `run-shell` lines at the **top** of `tmux.conf` (`:9-10`) repair this at load
-  by pulling the real login `PATH` **and** `TMUX_PLUGIN_MANAGER_PATH` from a login `zsh`
-  (`/bin/zsh -lc`), keeping `.zshenv` the single source of truth. Both invoke tmux by its
-  **absolute** path (`/opt/homebrew/bin/tmux`) because tmux isn't on the truncated PATH yet — an
-  earlier WIP used bare `tmux`, which resolved to nothing and returned 127, so PATH was never set
-  and tpm (loaded at `:156`) failed with the plugin path unset and never bound `prefix + I`. These
-  lines must stay above the tpm loader so tpm sees a correct env. Downstream: `run-shell`/popup
-  bindings (sesh, lazygit, `bind L`, `fd`) also see jenv/rustup/bob/`~/.local/bin`.
+- **tmux PATH + plugin path:** because tmux is now `exec`'d from a real login zsh (previous
+  bullet) instead of being launched directly by kitty with a truncated GUI PATH, the tmux server
+  simply *inherits* a correct, fully-exported environment — `PATH` and `TMUX_PLUGIN_MANAGER_PATH`
+  (`.zshenv:24`) included. `tmux.conf` no longer needs any PATH-repair step: the two `run-shell
+  … /bin/zsh -lc …` lines that used to sit at the top of the file (pulling the login PATH and
+  plugin path via a login-zsh subshell before the tpm loader ran) are deleted outright, along with
+  their absolute `/opt/homebrew/bin/tmux` invocations. The one thing that survives is the *reason*
+  those lines existed: login PATH on macOS has `/opt/homebrew/bin` *after* `/usr/bin`
+  (`/etc/zprofile`'s `path_helper` puts it there), so unqualified `bash` would resolve to Apple's
+  bash 3.2 — no associative arrays — which makes `tokyo-night-tmux` collapse every theme color to
+  one orange. That reordering is now repaired once, in `.zshrc`, immediately after the
+  non-interactive guard (a `path=(/opt/homebrew/bin $path)` re-prepend under an `-d` existence
+  guard that no-ops on any machine without Homebrew, e.g. Arch) — before the `exec tmux` a few
+  lines later, so the server inherits the corrected order. Downstream: `run-shell`/popup bindings
+  (sesh, lazygit, `bind L`, `fd`) also see jenv/rustup/bob/`~/.local/bin`, same as before.
 
 ---
 

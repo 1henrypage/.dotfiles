@@ -36,6 +36,8 @@ fi
 # MacOS-specific services
 if [ "$(uname -s)" = "Darwin" ]; then
   # Add Brew to path, if it's installed
+  # (repeated in .zshrc: /etc/zprofile's path_helper reorders PATH behind this for every login
+  # shell, so login shells re-assert it there, after path_helper has run)
   if [[ -d /opt/homebrew/bin ]]; then
     export PATH=/opt/homebrew/bin:$PATH
   fi
