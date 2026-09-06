@@ -82,7 +82,12 @@ outer.right = 8
 # New terminal on the current workspace (i3's alt-enter). `open -na` forces a new
 # kitty instance rather than raising the existing one. Absolute path for the same
 # launchd-PATH reason as the borders daemon above.
-ctrl-alt-enter = 'exec-and-forget /usr/bin/open -na kitty'
+# `env -u TMUX -u TMUX_PANE`: macOS `open` passes the CALLER's environment to the app it
+# launches, and if AeroSpace itself was ever (re)started from a shell inside tmux, its env
+# carries TMUX - which `login -p` then preserves into the new kitty's zsh, whose recursion
+# guard (`.zshrc`, `-z "$TMUX"`) sees it and silently refuses to exec tmux. A brand-new
+# terminal must never inherit tmux context, so strip it at the launch site.
+ctrl-alt-enter = 'exec-and-forget /usr/bin/env -u TMUX -u TMUX_PANE /usr/bin/open -na kitty'
 
 # Fuzzy window switcher across every workspace. exec-and-forget runs the string
 # through /bin/bash -c, so $HOME expands and the path stays machine-independent.
