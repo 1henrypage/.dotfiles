@@ -65,9 +65,28 @@ The single most confusing thing about this repo. They are unrelated:
   `tmux.conf`, because AeroSpace swallows it first. `macos_option_as_alt left` does not help:
   macOS hotkey registration cannot distinguish left Option from right. Full table in
   `ARCHITECTURE.md` §3.
+- **`ctrl-alt-<letter>` is a named-workspace namespace, not free real estate.** 19 letters
+  (`a c d e g i m n o p q s t u v w x y z`) are bound to `workspace <LETTER>` /
+  `move-node-to-workspace --focus-follows-window <LETTER>` for mnemonic workspaces (e.g.
+  `ctrl-alt-s` for Spotify). Only `b f h j k l r` are free, because they're already claimed by
+  window-management bindings. Binding a new `ctrl-alt-<letter>` for anything else silently steals
+  a workspace letter - see the `MODIFIER LAYER CONTRACT` comment in `aerospace.toml`.
 - **AeroSpace errors out if it finds a config in more than one location.** It reads
   `${XDG_CONFIG_HOME}/aerospace/aerospace.toml` (the dotbot symlink); a stray `~/.aerospace.toml`
   makes it refuse to start rather than picking one.
+- **Any glyph added to the tmux status bar (or anywhere else a Nerd Font is assumed) must be
+  checked against the font's cmap first, or it silently renders as tofu.** This is exactly the bug
+  that shipped for months in the old tokyo-night-tmux window-number styling (Unicode 13 Segmented
+  Digits, absent from `FantasqueSansMNerdFontMono-Regular.ttf`) - no error, no warning, just an
+  invisible glyph in place of `M-1`..`M-9`. See `ARCHITECTURE.md` §3 for how to check a codepoint
+  against the live font before adding it.
+- **tmux's `#{>=:x,y}` and friends compare strings, not numbers** - `#{>=:90,100}` is *true*,
+  `#{>=:100,80}` is *false*. Any numeric test (e.g. the status bar's `client_width` tiers) must use
+  an arithmetic sign test instead: `#{e|-|:x,N}` goes negative iff `x < N`, detected with
+  `#{m:-*,...}`. Silent, and it *looks* correct whenever both numbers have the same digit count.
+  Relatedly, a `#{?...}` condition must be inline - factored into an option and referenced as
+  `#{?#{E:@opt},a,b}` it is always false, because a bare `1`/`0` there is read as a variable name.
+  Both are documented in place in `tmux.conf`; see `ARCHITECTURE.md` §3.
 - **`macos-openwhispr.sh:70`** strips the Gatekeeper quarantine flag
   (`xattr -dr com.apple.quarantine`) from a freshly-downloaded, unsigned `.app`.
 

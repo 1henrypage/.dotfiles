@@ -12,6 +12,12 @@
 #   alt-1..9       switch tmux window                     (tmux.conf)
 #   ctrl-alt-hjkl  focus another OS window                (here)
 #   ctrl-alt-1..9  switch workspace                       (here)
+#   ctrl-alt-<letter>        switch to named workspace              (here)
+#   ctrl-alt-shift-<letter>  move window to named workspace         (here)
+#
+# `b f h j k l r` are reserved for the window-management bindings below and are
+# therefore NOT workspace letters. Binding a new ctrl-alt-<letter> steals a
+# workspace from that set - update this comment if you do.
 #
 # Never bind a bare `alt-*` or `ctrl-*` chord in this file: it would shadow tmux
 # in every kitty window, and `macos_option_as_alt left` cannot save us because
@@ -25,6 +31,10 @@ start-at-login = true
 
 # Keep 1-10 alive even when empty, so every ctrl-alt-N lands somewhere. Under
 # config-version 1 this was inferred from the bindings; v2 requires it stated.
+#
+# Letter workspaces (below) are deliberately NOT listed here: they exist only
+# while occupied, so `aerospace list-workspaces --all` stays a useful answer to
+# "which letters am I actually using right now?" instead of always listing all 19.
 persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 # JankyBorders draws the focused-window border (macOS gives no usable focus cue
@@ -128,6 +138,50 @@ ctrl-alt-shift-8 = 'move-node-to-workspace --focus-follows-window 8'
 ctrl-alt-shift-9 = 'move-node-to-workspace --focus-follows-window 9'
 ctrl-alt-shift-0 = 'move-node-to-workspace --focus-follows-window 10'
 
+# Named workspaces. The letter is the mnemonic - ctrl-alt-s is the Spotify
+# workspace because you decided it is, not because a rule enforces it.
+# b/f/h/j/k/l/r are absent: they are window-management bindings above.
+ctrl-alt-a = 'workspace A'
+ctrl-alt-c = 'workspace C'
+ctrl-alt-d = 'workspace D'
+ctrl-alt-e = 'workspace E'
+ctrl-alt-g = 'workspace G'
+ctrl-alt-i = 'workspace I'
+ctrl-alt-m = 'workspace M'
+ctrl-alt-n = 'workspace N'
+ctrl-alt-o = 'workspace O'
+ctrl-alt-p = 'workspace P'
+ctrl-alt-q = 'workspace Q'
+ctrl-alt-s = 'workspace S'
+ctrl-alt-t = 'workspace T'
+ctrl-alt-u = 'workspace U'
+ctrl-alt-v = 'workspace V'
+ctrl-alt-w = 'workspace W'
+ctrl-alt-x = 'workspace X'
+ctrl-alt-y = 'workspace Y'
+ctrl-alt-z = 'workspace Z'
+
+# Same --focus-follows-window as the numeric block: go with the window.
+ctrl-alt-shift-a = 'move-node-to-workspace --focus-follows-window A'
+ctrl-alt-shift-c = 'move-node-to-workspace --focus-follows-window C'
+ctrl-alt-shift-d = 'move-node-to-workspace --focus-follows-window D'
+ctrl-alt-shift-e = 'move-node-to-workspace --focus-follows-window E'
+ctrl-alt-shift-g = 'move-node-to-workspace --focus-follows-window G'
+ctrl-alt-shift-i = 'move-node-to-workspace --focus-follows-window I'
+ctrl-alt-shift-m = 'move-node-to-workspace --focus-follows-window M'
+ctrl-alt-shift-n = 'move-node-to-workspace --focus-follows-window N'
+ctrl-alt-shift-o = 'move-node-to-workspace --focus-follows-window O'
+ctrl-alt-shift-p = 'move-node-to-workspace --focus-follows-window P'
+ctrl-alt-shift-q = 'move-node-to-workspace --focus-follows-window Q'
+ctrl-alt-shift-s = 'move-node-to-workspace --focus-follows-window S'
+ctrl-alt-shift-t = 'move-node-to-workspace --focus-follows-window T'
+ctrl-alt-shift-u = 'move-node-to-workspace --focus-follows-window U'
+ctrl-alt-shift-v = 'move-node-to-workspace --focus-follows-window V'
+ctrl-alt-shift-w = 'move-node-to-workspace --focus-follows-window W'
+ctrl-alt-shift-x = 'move-node-to-workspace --focus-follows-window X'
+ctrl-alt-shift-y = 'move-node-to-workspace --focus-follows-window Y'
+ctrl-alt-shift-z = 'move-node-to-workspace --focus-follows-window Z'
+
 ctrl-alt-tab = 'workspace-back-and-forth'
 ctrl-alt-shift-tab = 'focus-back-and-forth'  # same idea, one level down: last *window*
 
@@ -184,3 +238,11 @@ l = ['join-with right', 'mode main']
 # [[on-window-detected]]
 # if = 'test %{app-bundle-id} = com.apple.systempreferences'
 # run = 'layout floating'
+#
+# Nor are app-to-workspace rules, for the same reason: on-window-detected fires
+# per *new window*, so a rule pinning a browser would teleport you every time you
+# opened a second window. Form, if you ever want one:
+#
+# [[on-window-detected]]
+# if = 'test %{app-bundle-id} = com.spotify.client'
+# run = 'move-node-to-workspace S'

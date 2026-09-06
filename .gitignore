@@ -6,4 +6,5 @@ lib/
 config/claude/daemon/
 config/claude/image-cache/
 config/claude/jobs/
+config/claude/feedback
 config/claude/.last-cleanup

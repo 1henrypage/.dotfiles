@@ -194,11 +194,20 @@ These configs are entangled; changing one in isolation breaks another.
   | `alt-1`..`alt-9`, `M-Tab` | tmux | switch tmux window |
   | `ctrl-alt-h/j/k/l` | AeroSpace | focus another OS window |
   | `ctrl-alt-1`..`ctrl-alt-9`, `ctrl-alt-0` (= workspace 10), `ctrl-alt-tab` | AeroSpace | switch workspace |
+  | `ctrl-alt-<letter>` | AeroSpace | switch to named workspace |
+  | `ctrl-alt-shift-<letter>` | AeroSpace | move window to named workspace |
 
   Bind `alt-*` in `aerospace.toml` and tmux window switching dies silently in *every* kitty
   window; bind `ctrl-alt-*` in `tmux.conf` and AeroSpace eats it before tmux is reached.
   `macos_option_as_alt left` (`kitty.conf:9`) does **not** rescue this — macOS hotkey registration
   cannot distinguish left Option from right.
+
+  The letter row is a second, coexisting workspace namespace (`ctrl-alt-s` = `workspace S`,
+  independent of numeric `ctrl-alt-1..0`) — 19 of the 26 letters are bound this way. `b f h j k
+  l r` are excluded because `ctrl-alt-<letter>` and `ctrl-alt-shift-<letter>` are already spoken
+  for by the window-management bindings above (focus/move `h j k l`, floating `f`, resize mode
+  `r`, balance-sizes `b`); adding any future `ctrl-alt-<letter>` binding silently steals a
+  workspace letter from that set of 19.
 - **AeroSpace refuses to start if it finds a config in more than one place.** It searches
   `${XDG_CONFIG_HOME}/aerospace/aerospace.toml` (the dotbot symlink, see §2) *and*
   `~/.aerospace.toml`; a stray file at the latter is a hard startup error, not a precedence rule.
@@ -224,15 +233,93 @@ These configs are entangled; changing one in isolation breaks another.
     `#769ff0` and `#394260` are hardcoded a **third** time in `config/aerospace/aerospace.toml`
     (as `0xff769ff0` / `0xff394260`, JankyBorders' `0xAARRGGBB` form) for the focused/unfocused
     window border, so a kitty palette change now needs a matching edit there.
-  - tmux themes via the **`janoamaral/tokyo-night-tmux` plugin** with `_theme night`
-    (`tmux.conf:139-149`) — its own palette, not the kitty hex.
+  - tmux's status line is now **hand-rolled directly in `tmux.conf`** (the
+    `janoamaral/tokyo-night-tmux` plugin it used to come from is deleted, see below) with its own
+    hardcoded Tokyo Night `night`-theme hex palette, lifted from the plugin before deletion — a
+    fourth independent copy, not shared with the kitty hex.
   - nvim uses **tokyonight _storm_** (transparent) per `config/nvim/CLAUDE.md` — a different
     Tokyo Night variant again.
 - **A Nerd Font is assumed.** kitty sets `font_family FantasqueSansM Nerd Font Mono`
-  (`kitty.conf:68`); starship, the sesh picker, and nvim all render glyphs that require it.
+  (`kitty.conf:68`); starship, the sesh picker, nvim, and the tmux status line (below) all render
+  glyphs that require it. **Any new glyph must be checked against the font's cmap before it
+  ships**, or it silently renders as tofu — this bit the tmux status line for months: the old
+  `@tokyo-night-tmux_window_id_style digital` setting rendered window numbers with Unicode 13
+  Segmented Digits (`U+1FBF0`-`U+1FBF9`), a range absent from
+  `~/Library/Fonts/FantasqueSansMNerdFontMono-Regular.ttf`'s ~11.9k-codepoint cmap, so every `M-1`
+  through `M-9` target was invisible. Fixed by dropping the plugin's digit styling for plain `#I`.
+  Check a candidate codepoint against the live font with `fontTools` (`uv run --with fontTools
+  python3 -c "from fontTools.ttLib import TTFont; print(0xXXXX in
+  TTFont('/Users/henry/Library/Fonts/FantasqueSansMNerdFontMono-Regular.ttf').getBestCmap())"`)
+  before adding it anywhere in `tmux.conf` or the `statusbar/` scripts.
 - **`EDITOR`/`VISUAL` = `vim`** (`.zshenv:13-14`), but git's `core.editor = nvim`
   (`.gitconfig:12`). Different editors for shell vs git, and there's no `vim`→`nvim` bridging
   alias.
+- **tmux status line: hook → pane-option → format contract, zero-poll.** `janoamaral/tokyo-night-tmux`
+  is deleted outright (decision, not drift) and replaced by a hand-rolled `tmux.conf` status line
+  plus three small scripts (`config/tmux/statusbar/{battery,git,memory}.sh`). Why: measured on this machine,
+  the plugin's `custom-number.sh` cost 57ms and ran **twice per tab** per redraw, `git-status.sh`
+  cost 184ms and unprompted `git fetch --atomic origin`'d every 5 minutes in any clean repo,
+  `path-widget.sh` and `battery-widget.sh` cost ~50ms/~80ms, and every one of those scripts sourced
+  `lib/coreutils-compat.sh`, which unconditionally forked `brew --prefix` (41ms) on every
+  invocation just to prepend GNU coreutils/gawk/bc to `PATH`. At 4 windows and `status-interval 5`
+  that was ~770ms of subprocess CPU every 5 seconds (~15% of a core, forever) plus a periodic
+  network hit from the status line. The replacement's tab line does zero
+  forks: a Claude Code hook (`config/claude/hooks/claude-tmux-state.sh`, wired in
+  `config/claude/settings.json`'s `hooks` block for `SessionStart`/`UserPromptSubmit`/
+  `PermissionRequest`/`Stop`/`SessionEnd`) writes `@claude_state`/`@claude_start`/`@claude_project`
+  as **pane** options (`tmux set -p`) and calls `refresh-client -S` for an immediate redraw; the
+  format side reads them back natively via `#{P:...}` (loop panes in a window), `#{E:@opt}` (expand
+  an option's own format-string content — used to factor the pane-loop/badge/label/timer
+  subexpressions out of the four-way ladder instead of repeating them), `#{m:*pattern*,...}`
+  (worst-state-wins: blocked > done > working > idle), and `%s`/`#{e|-|:...}`/`#{e|/|:...}`/
+  `#{e|m|:...}` (elapsed-time arithmetic — note the modulo operator is `m`, not `%`) — all native
+  tmux formats, no `#()`. Self-healing: the pane-loop gates on
+  `#{==:#{pane_current_command},claude}` (tracked natively by tmux, zero forks) so a `kill -9`'d or
+  Ctrl-C'd Claude (which doesn't fire the `Stop` hook) still clears its badge on the next redraw
+  once the pane's foreground process reverts to the shell — no manual reset. The only three
+  remaining forks (`battery.sh`, `git.sh`, `memory.sh` — all in `status-right`, so once per redraw,
+  never per-window) are TTL-cached (30s / 3s / 10s) and never touch GNU coreutils or the network —
+  `git.sh` shows branch + dirty count only, deliberately dropping the old sync-status feature
+  (`git fetch`, `git log @{push}..`) that caused the network hit.
+
+  **Layout.** `status 2`, both slots set **explicitly** — tmux 3.7 defaults `status-format[0]` to
+  the everything-on-one-line format, `[1]` to a *pane* list and `[2]` to a *session* list, so
+  leaving either unset silently shows the wrong thing. `[0]` (top) is the **window/tab list**,
+  `#[align=centre]`; `[1]` (bottom) is the session pill + widgets as one `#[align=centre]` block.
+  Note the tab list is on `[0]`, i.e. the slot whose *default* content is the one-line format — its
+  `#[range=window|#{window_index} ...]` markers are carried over from that default verbatim; drop
+  them and click-to-select-tab breaks (`mouse on`, `tmux.conf:113`). The bottom bar is deliberately
+  one centered group rather than `#[align=left]`…`#[align=right]`: edge-anchoring splits it into two
+  clusters with a dead gap between them at wide terminal sizes.
+
+  **Responsive tiers.** The bottom bar sheds widgets and tightens separators as the client narrows
+  so it never overflows and gets clipped: `>=110` everything with wide separators, `>=75`
+  everything with tight separators, `>=50` drops path + day, `<50` is time + battery only
+  (boundaries verified inclusive at exactly 110/75/50). Two non-obvious constraints govern how
+  those thresholds are written, and **both fail silently**:
+  - **tmux's comparison operators are string comparisons, not numeric.** `#{>=:90,100}` is *true*
+    and `#{>=:100,80}` is *false*. A width test written the obvious way appears to work whenever
+    the two numbers happen to have the same digit count, which is exactly how it survives a casual
+    test. Every threshold therefore uses an arithmetic sign test instead: `#{e|-|:#{client_width},N}`
+    goes negative iff `width < N`, and `#{m:-*,...}` detects the leading minus.
+  - **A `#{?...}` condition must be written inline.** Factoring one into its own option and
+    referencing it as `#{?#{E:@opt},a,b}` does not work: a bare `1`/`0` in the condition slot is
+    looked up as a *variable name*, not read as a boolean, so it is always false. Only the widget
+    fragments and the tier groups are factored into `@_sb_*` options; the conditions stay inline.
+
+  `#()` **does** run correctly inside those nested `#{E:}`-expanded conditional branches (verified
+  on the live server by clearing `${XDG_CACHE_HOME}/tmux-statusbar/` and watching all three widget
+  caches repopulate). It cannot be verified through `display-message -p`, which returns empty for
+  `#()` regardless — jobs are async and their cache lives on the client's status context, so
+  `display-message` is the wrong instrument for that particular check.
+
+  **Prefix indicator:** the session pill restyles to an inverted amber block while the `C-a` prefix
+  is armed (`#{?client_prefix,...}` on both `fg=` and `bg=`), which costs no extra columns.
+
+  One accepted gap: `@claude_start` is
+  pane-scoped, so in a split where the focused pane isn't the Claude pane, the badge still reflects
+  it via the pane loop but the elapsed timer (window-scoped active-pane fallthrough) doesn't render
+  for it.
 - **tmux PATH + plugin path:** because tmux is now `exec`'d from a real login zsh (previous
   bullet) instead of being launched directly by kitty with a truncated GUI PATH, the tmux server
   simply *inherits* a correct, fully-exported environment — `PATH` and `TMUX_PLUGIN_MANAGER_PATH`
@@ -240,13 +327,17 @@ These configs are entangled; changing one in isolation breaks another.
   … /bin/zsh -lc …` lines that used to sit at the top of the file (pulling the login PATH and
   plugin path via a login-zsh subshell before the tpm loader ran) are deleted outright, along with
   their absolute `/opt/homebrew/bin/tmux` invocations. The one thing that survives is the *reason*
-  those lines existed: login PATH on macOS has `/opt/homebrew/bin` *after* `/usr/bin`
-  (`/etc/zprofile`'s `path_helper` puts it there), so unqualified `bash` would resolve to Apple's
-  bash 3.2 — no associative arrays — which makes `tokyo-night-tmux` collapse every theme color to
-  one orange. That reordering is now repaired once, in `.zshrc`, immediately after the
-  non-interactive guard (a `path=(/opt/homebrew/bin $path)` re-prepend under an `-d` existence
-  guard that no-ops on any machine without Homebrew, e.g. Arch) — before the `exec tmux` a few
-  lines later, so the server inherits the corrected order. Downstream: `run-shell`/popup bindings
+  those lines existed, now historical rather than live: login PATH on macOS has `/opt/homebrew/bin`
+  *after* `/usr/bin` (`/etc/zprofile`'s `path_helper` puts it there), so unqualified `bash` used to
+  resolve to Apple's bash 3.2 — no associative arrays — which made `tokyo-night-tmux` collapse
+  every theme color to one orange. Both the plugin and the `bash`/`bc`/`gawk`/`coreutils` Brewfile
+  entries it justified are gone (see above), so that specific failure mode can no longer occur —
+  but the reordering itself is harmless general Homebrew-first PATH precedence, so it stays rather
+  than being ripped out for a rationale that's now moot. It is repaired once, in `.zshrc`,
+  immediately after the non-interactive guard (a `path=(/opt/homebrew/bin $path)` re-prepend under
+  an `-d` existence guard that no-ops on any machine without Homebrew, e.g. Arch) — before the
+  `exec tmux` a few lines later, so the server inherits the corrected order. Downstream:
+  `run-shell`/popup bindings
   (sesh, lazygit, `bind L`, `fd`) also see jenv/rustup/bob/`~/.local/bin`, same as before.
 
 ---
@@ -281,9 +372,10 @@ Everything below describes the **personal** profile, where `~/.claude` is force-
 wholesale to this directory. Under `--corporate` only `CLAUDE.md` and per-skill links under
 `skills/` are linked in individually, without `force` — see §9.
 
-**Tracked** (7 entries — `git ls-files config/claude`): `.gitignore`, `CLAUDE.md`, `WRITING.md`,
-`settings.json`, `hooks/notify.sh`, `commands/.gitkeep`, and **`skills`** — the 7th entry is not a
-directory but a **tracked symlink** (`config/claude/skills -> ../skills`), git mode `120000`.
+**Tracked** (8 entries — `git ls-files config/claude`): `.gitignore`, `CLAUDE.md`, `WRITING.md`,
+`settings.json`, `hooks/notify.sh`, `hooks/claude-tmux-state.sh`, `commands/.gitkeep`, and
+**`skills`** — the last entry is not a directory but a **tracked symlink**
+(`config/claude/skills -> ../skills`), git mode `120000`.
 Skills themselves moved to the tool-neutral `config/skills/`; this one committed symlink is what
 makes `~/.claude/skills` (personal, via the wholesale `~/.claude` force-link) resolve straight
 through to `config/skills` with no separate `symlinks.yaml` entry — see §2. `~/.agents/skills`
@@ -301,8 +393,15 @@ for current values:
   model and the default-Opus-alias model.
 - top-level: `model`, `effortLevel`, `showClearContextOnPlanAccept`,
   `skipDangerousModePermissionPrompt`, `skipWorkflowUsageWarning`, `enabledPlugins`.
-- **`hooks: {}`** — so `hooks/notify.sh` (a cross-platform desktop-notification script) is
-  **orphaned**: tracked and symlinked in, but wired to nothing.
+- **`hooks`**: `SessionStart`, `UserPromptSubmit`, `PermissionRequest`, `Stop`, and `SessionEnd`
+  all run `hooks/claude-tmux-state.sh <state>` (personal profile only, since corporate never
+  links `settings.json` — see §9), which bridges Claude's state into the tmux status line as pane
+  options (see §3's hook → pane-option → format contract bullet). On `blocked`, if the requesting
+  window isn't focused, it also shells out to `hooks/notify.sh` (a cross-platform desktop
+  notification script) for a `title`/`message` popup. Both scripts must be `chmod +x` and are
+  called by absolute-resolved path (`command -v tmux`, falling back to a candidate-path list) since
+  a hook does not inherit a login shell's `PATH` — same class of fix as
+  `config/aerospace/window-picker.sh`.
 
 **Two-layer gitignore** keeps runtime state out of git:
 - root `.gitignore:6-9` — `config/claude/daemon/`, `config/claude/image-cache/`,

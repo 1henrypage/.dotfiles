@@ -25,10 +25,6 @@ brew 'starship'     # Prompt
 brew 'beads'        # Agentic issue tracker
 brew 'sesh'         # Smart tmux session manager (zoxide-backed)
 brew 'lazygit'      # Terminal UI for git (tmux popup)
-brew 'bc'           # Arbitrary-precision calc (tokyo-night-tmux widgets)
-brew 'gawk'         # GNU awk (tokyo-night-tmux widgets)
-brew 'bash'         # bash 5+; Apple's 3.2 lacks assoc arrays -> tokyo-night-tmux goes all-orange
-brew 'coreutils'    # GNU coreutils (tokyo-night-tmux widgets)
 brew 'FelixKratz/formulae/borders' # Focused-window border daemon (AeroSpace companion)
 
 # CASKS
