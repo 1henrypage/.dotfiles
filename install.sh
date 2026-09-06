@@ -367,6 +367,24 @@ if [ "$SYSTEM_TYPE" = "Darwin" ]; then
             fi
         fi
 
+        # Homebrew 6 refuses to load formulae/casks from third-party taps until they are
+        # explicitly trusted, so every fully-qualified `owner/tap/pkg` entry in a Brewfile needs
+        # its tap trusted first or `brew bundle` hard-fails on it. `brew trust` itself only
+        # exists on Homebrew >= 6; on older brews the taps load unconditionally and the command
+        # is absent, so skip it rather than recording a bogus failure.
+        if brew commands 2>/dev/null | grep -qx trust; then
+            echo "Trusting third-party Homebrew taps..."
+            trust_taps="felixkratz/formulae nikitabobko/tap"
+            if [ "$DOTFILES_PROFILE" = "personal" ]; then
+                trust_taps="$trust_taps omnigent-ai/tap anomalyco/tap"
+            fi
+            for tap in $trust_taps; do
+                if ! brew trust --tap "$tap"; then
+                    record_failure "brew trust $tap"
+                fi
+            done
+        fi
+
         echo "Installing Homebrew packages (base)..."
         if ! brew bundle install --file="$SRC_DIR/scripts/installs/Brewfile"; then
             record_failure "brew bundle (base)"

@@ -29,11 +29,13 @@ brew 'bc'           # Arbitrary-precision calc (tokyo-night-tmux widgets)
 brew 'gawk'         # GNU awk (tokyo-night-tmux widgets)
 brew 'bash'         # bash 5+; Apple's 3.2 lacks assoc arrays -> tokyo-night-tmux goes all-orange
 brew 'coreutils'    # GNU coreutils (tokyo-night-tmux widgets)
+brew 'FelixKratz/formulae/borders' # Focused-window border daemon (AeroSpace companion)
 
 # CASKS
 cask 'visual-studio-code' # Code editor
 cask 'kitty'              # GPU Accelerated Terminal Emulator
 cask 'sublime-text'       # Text editor, will migrate off this soon
+cask 'nikitabobko/tap/aerospace' # Tiling window manager (not in cask core)
 
 # Development Langs, Compilers, Package Managers and SDKs
 brew 'jenv'

@@ -58,6 +58,16 @@ The single most confusing thing about this repo. They are unrelated:
   citing by name instead of line number for it).
 - **`brew upgrade` upgrades every installed formula/cask**, not just Brewfile entries — that's why
   it's gated to the personal profile only.
+- **AeroSpace owns `ctrl-alt` globally; tmux owns bare `alt` and bare `ctrl`.** AeroSpace registers
+  *global* macOS hotkeys, so it intercepts a keystroke before kitty (and therefore tmux/nvim) ever
+  sees it. Never bind `alt-*` in `config/aerospace/aerospace.toml` - it would shadow tmux window
+  switching (`M-1`..`M-9`) and pane resize in every kitty window - and never bind `ctrl-alt-*` in
+  `tmux.conf`, because AeroSpace swallows it first. `macos_option_as_alt left` does not help:
+  macOS hotkey registration cannot distinguish left Option from right. Full table in
+  `ARCHITECTURE.md` §3.
+- **AeroSpace errors out if it finds a config in more than one location.** It reads
+  `${XDG_CONFIG_HOME}/aerospace/aerospace.toml` (the dotbot symlink); a stray `~/.aerospace.toml`
+  makes it refuse to start rather than picking one.
 - **`macos-openwhispr.sh:70`** strips the Gatekeeper quarantine flag
   (`xattr -dr com.apple.quarantine`) from a freshly-downloaded, unsigned `.app`.
 

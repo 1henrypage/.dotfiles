@@ -129,6 +129,7 @@ each need their own block). See §9 for how `if:` gating on `DOTFILES_PROFILE` w
 | `${XDG_CONFIG_HOME}/zsh` | `config/zsh` | |
 | `${XDG_CONFIG_HOME}/nvim` | `config/nvim` | submodule |
 | `${XDG_CONFIG_HOME}/kitty` | `config/kitty` | |
+| `${XDG_CONFIG_HOME}/aerospace` | `config/aerospace` | |
 | `${XDG_CONFIG_HOME}/starship.toml` | `config/general/starship.toml` | |
 | `${HOME}/.gitconfig` | `config/general/.gitconfig` | existence-guarded (`if:` requires the path doesn't exist **or** is already a symlink) — same pattern as `~/AGENTS.md`, no `force` |
 | `${XDG_CONFIG_HOME}/.gitignore_global` | `config/general/.gitignore_global` | |
@@ -178,6 +179,38 @@ These configs are entangled; changing one in isolation breaks another.
   (`tmux.conf:86-94`). Those Alt chords reach tmux through kitty's `macos_option_as_alt left`
   (`kitty.conf:9`) — the only mechanism involved. The backtick/tilde swap is a separate, unrelated
   remap via `hidutil` in `scripts/macos/personal/macos-keyremap.sh`.
+- **AeroSpace owns `ctrl-alt` globally; tmux owns bare `alt` and bare `ctrl`.** AeroSpace
+  (`config/aerospace/aerospace.toml`) registers *global* macOS hotkeys, so it intercepts a
+  keystroke **before** kitty — and therefore tmux and nvim — ever sees it. That makes the modifier
+  split a hard, repo-wide contract rather than a preference. The stock AeroSpace config binds
+  `alt-h/j/k/l` and `alt-1..9`, which is exactly what `tmux.conf` already uses
+  (`resize-pane` `:59-62,70-73` and `select-window` `:86-94`), so it is **not** shipped as-is; every
+  binding here is moved one layer out:
+
+  | Chord | Owner | Job |
+  |---|---|---|
+  | `ctrl-h/j/k/l` | tmux + `tmux.nvim` | move within nvim splits / tmux panes |
+  | `alt-h/j/k/l` | tmux + `tmux.nvim` | resize that pane |
+  | `alt-1`..`alt-9`, `M-Tab` | tmux | switch tmux window |
+  | `ctrl-alt-h/j/k/l` | AeroSpace | focus another OS window |
+  | `ctrl-alt-1`..`ctrl-alt-9`, `ctrl-alt-0` (= workspace 10), `ctrl-alt-tab` | AeroSpace | switch workspace |
+
+  Bind `alt-*` in `aerospace.toml` and tmux window switching dies silently in *every* kitty
+  window; bind `ctrl-alt-*` in `tmux.conf` and AeroSpace eats it before tmux is reached.
+  `macos_option_as_alt left` (`kitty.conf:9`) does **not** rescue this — macOS hotkey registration
+  cannot distinguish left Option from right.
+- **AeroSpace refuses to start if it finds a config in more than one place.** It searches
+  `${XDG_CONFIG_HOME}/aerospace/aerospace.toml` (the dotbot symlink, see §2) *and*
+  `~/.aerospace.toml`; a stray file at the latter is a hard startup error, not a precedence rule.
+- **AeroSpace's `after-startup-command` runs under launchd's PATH** (`/usr/bin:/bin:/usr/sbin:/sbin`),
+  so the JankyBorders daemon is launched by **absolute** path
+  (`/opt/homebrew/bin/borders`) — a bare `borders` is silently not found. Same truncated-GUI-`PATH`
+  class of bug as the tmux server one below. `config/aerospace/window-picker.sh` (the
+  `ctrl-alt-space` fzf window switcher) has the same constraint for a different reason: kitty runs
+  it directly rather than through a login shell, so neither `.zshenv` nor `.zshrc` applies and it
+  too calls `aerospace`/`fzf` by absolute path. Note `exec-and-forget` runs its string through
+  `/bin/bash -c`, so `$HOME` **does** expand in `aerospace.toml` — no absolute home path is
+  hardcoded.
 - **Seamless pane nav across tmux ⇄ nvim** is hand-rolled on the tmux side and plugin-driven on
   the nvim side: `tmux.conf` defines `is_vim` (`:49-50`) and forwards `C-h/j/k/l` / `M-h/j/k/l`
   conditionally (`:53-62`), while nvim uses `aserowy/tmux.nvim`
@@ -188,6 +221,9 @@ These configs are entangled; changing one in isolation breaks another.
   (not a bug):
   - kitty (`kitty.conf`) and starship (`starship.toml`) share an **identical hardcoded hex
     palette** (`#1d2230` bg, `#e3e5e5` fg, `#769ff0`, `#a3aed2`, `#394260`, `#212736`, …).
+    `#769ff0` and `#394260` are hardcoded a **third** time in `config/aerospace/aerospace.toml`
+    (as `0xff769ff0` / `0xff394260`, JankyBorders' `0xAARRGGBB` form) for the focused/unfocused
+    window border, so a kitty palette change now needs a matching edit there.
   - tmux themes via the **`janoamaral/tokyo-night-tmux` plugin** with `_theme night`
     (`tmux.conf:139-149`) — its own palette, not the kitty hex.
   - nvim uses **tokyonight _storm_** (transparent) per `config/nvim/CLAUDE.md` — a different
@@ -393,12 +429,24 @@ it (`:92`) before doing anything else. Three consumers read it:
   deliberate: an unset or misspelled `DOTFILES_PROFILE` falls back to running **neither** extra
   set rather than accidentally running the personal one. No manifest to drift: which script runs
   on which profile is just which directory it lives in.
+- **Third-party taps must be trusted before `brew bundle`.** Homebrew 6 refuses to load a
+  formula or cask from a non-official tap until it is explicitly trusted (`Error: Refusing to load
+  formula … from untrusted tap`), which hard-fails `brew bundle` on every fully-qualified
+  `owner/tap/pkg` entry. `install.sh` therefore runs `brew trust --tap` over the taps its Brewfiles
+  reference — `felixkratz/formulae` + `nikitabobko/tap` (base), plus `omnigent-ai/tap` +
+  `anomalyco/tap` on personal — before either `brew bundle install` call. **Adding a new
+  `owner/tap/pkg` line to a Brewfile means adding its tap to that list**, or a fresh-machine
+  install breaks on it. The step is guarded by `brew commands | grep -qx trust` because the
+  command only exists on Homebrew >= 6; older brews load third-party taps unconditionally, and the
+  guard keeps them from recording a bogus failure. Trust is recorded outside the repo, in
+  `${XDG_CONFIG_HOME}/homebrew/trust.json`, so it is per-machine state, not something dotfiles
+  carries.
 - **`install.sh`'s own Darwin block** — gates `brew upgrade` (personal only, since it upgrades
   *every* installed formula/cask, not just Brewfile entries — IT-provisioned software on a
   corporate box shouldn't get silently upgraded by this script) and the second `brew bundle
   install --file=` call against `Brewfile.personal` (personal only) directly on the same check.
 
-**The package split.** `scripts/installs/Brewfile` (base, 30 brews + 5 casks) installs on both
+**The package split.** `scripts/installs/Brewfile` (base, 31 brews + 6 casks) installs on both
 profiles; `scripts/installs/Brewfile.personal` (5 brews + 17 casks) only on personal. Both carry
 their own `cask_args appdir: '~/Applications', require_sha: true` header since each is passed to
 `brew bundle install --file=` independently — there's no shared "global" Brewfile context anymore.

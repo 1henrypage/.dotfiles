@@ -43,6 +43,7 @@
     ${XDG_CONFIG_HOME}/zsh: config/zsh
     ${XDG_CONFIG_HOME}/nvim: config/nvim
     ${XDG_CONFIG_HOME}/kitty: config/kitty
+    ${XDG_CONFIG_HOME}/aerospace: config/aerospace
     ${XDG_CONFIG_HOME}/starship.toml: config/general/starship.toml
 
     # Utility config files

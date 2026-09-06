@@ -1,0 +1,186 @@
+# AeroSpace - tiling window manager for macOS.
+# Docs: https://nikitabobko.github.io/AeroSpace/guide
+#
+# MODIFIER LAYER CONTRACT - read before adding any binding.
+#
+# AeroSpace registers *global* macOS hotkeys, so it swallows a keystroke before
+# kitty (and therefore tmux/nvim) ever sees it. The layers below are disjoint by
+# construction, and must stay that way:
+#
+#   ctrl-hjkl      move within nvim splits / tmux panes   (tmux.conf)
+#   alt-hjkl       resize that pane                       (tmux.conf)
+#   alt-1..9       switch tmux window                     (tmux.conf)
+#   ctrl-alt-hjkl  focus another OS window                (here)
+#   ctrl-alt-1..9  switch workspace                       (here)
+#
+# Never bind a bare `alt-*` or `ctrl-*` chord in this file: it would shadow tmux
+# in every kitty window, and `macos_option_as_alt left` cannot save us because
+# macOS hotkey registration cannot distinguish left Option from right.
+
+# Pin the config schema. Omitting this falls back to version 1, which AeroSpace
+# warns about on every load.
+config-version = 2
+
+start-at-login = true
+
+# Keep 1-10 alive even when empty, so every ctrl-alt-N lands somewhere. Under
+# config-version 1 this was inferred from the bindings; v2 requires it stated.
+persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+
+# JankyBorders draws the focused-window border (macOS gives no usable focus cue
+# once windows are gapless and tiled).
+#
+# The absolute path is REQUIRED. exec-and-forget inherits AeroSpace's launchd
+# environment, whose PATH is /usr/bin:/bin:/usr/sbin:/sbin - a bare `borders` is
+# not found and fails silently. Same truncated-GUI-PATH class of bug that
+# .claude/ARCHITECTURE.md section 3 documents for the tmux server.
+#
+# Colours are kitty's: 0xff769ff0 = kitty active_border_color / color4,
+# 0xff394260 = kitty selection_background.
+after-startup-command = [
+  'exec-and-forget /opt/homebrew/bin/borders active_color=0xff769ff0 inactive_color=0xff394260 width=6.0'
+]
+
+# Normalization - keep the tree free of redundant containers.
+enable-normalization-flatten-containers = true
+enable-normalization-opposite-orientation-for-nested-containers = true
+
+# Auto-tiling is the default; floating is opt-in per window via ctrl-alt-f.
+accordion-padding = 30
+default-root-container-layout = 'tiles'
+default-root-container-orientation = 'auto'
+
+# Keep the pointer with the focused monitor so hover-sensitive UI and the
+# menu bar follow the keyboard.
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+
+# Keyboard software layout is ABC (US) on German ISO keycaps, so qwerty is
+# correct here: the keys labelled `ü` and `+` send [ and ].
+[key-mapping]
+preset = 'qwerty'
+
+[gaps]
+inner.horizontal = 8
+inner.vertical = 8
+outer.left = 8
+outer.bottom = 8
+outer.top = 8
+outer.right = 8
+
+[mode.main.binding]
+
+# New terminal on the current workspace (i3's alt-enter). `open -na` forces a new
+# kitty instance rather than raising the existing one. Absolute path for the same
+# launchd-PATH reason as the borders daemon above.
+ctrl-alt-enter = 'exec-and-forget /usr/bin/open -na kitty'
+
+# Fuzzy window switcher across every workspace. exec-and-forget runs the string
+# through /bin/bash -c, so $HOME expands and the path stays machine-independent.
+ctrl-alt-space = 'exec-and-forget /opt/homebrew/bin/kitty --title aerospace-picker "$HOME/.config/aerospace/window-picker.sh"'
+
+# Focus / move windows.
+# --boundaries all-monitors-outer-frame makes focus flow off the edge of one
+# display straight onto the next, instead of stopping at the workspace edge.
+# ctrl-alt-[ / ] below still jump monitors directly, regardless of layout.
+ctrl-alt-h = 'focus --boundaries all-monitors-outer-frame left'
+ctrl-alt-j = 'focus --boundaries all-monitors-outer-frame down'
+ctrl-alt-k = 'focus --boundaries all-monitors-outer-frame up'
+ctrl-alt-l = 'focus --boundaries all-monitors-outer-frame right'
+
+# Same boundary as focus above, so a window can be pushed onto the next display.
+ctrl-alt-shift-h = 'move --boundaries all-monitors-outer-frame left'
+ctrl-alt-shift-j = 'move --boundaries all-monitors-outer-frame down'
+ctrl-alt-shift-k = 'move --boundaries all-monitors-outer-frame up'
+ctrl-alt-shift-l = 'move --boundaries all-monitors-outer-frame right'
+
+# Layout.
+ctrl-alt-f = 'layout floating tiling'
+ctrl-alt-shift-f = 'fullscreen --no-outer-gaps'
+ctrl-alt-slash = 'layout tiles horizontal vertical'
+ctrl-alt-comma = 'layout accordion horizontal vertical'
+
+# Resize.
+ctrl-alt-minus = 'resize smart -50'
+ctrl-alt-equal = 'resize smart +50'
+
+# Workspaces. No monitor pinning - workspaces follow wherever focus is, which
+# survives dock/undock unchanged.
+ctrl-alt-1 = 'workspace 1'
+ctrl-alt-2 = 'workspace 2'
+ctrl-alt-3 = 'workspace 3'
+ctrl-alt-4 = 'workspace 4'
+ctrl-alt-5 = 'workspace 5'
+ctrl-alt-6 = 'workspace 6'
+ctrl-alt-7 = 'workspace 7'
+ctrl-alt-8 = 'workspace 8'
+ctrl-alt-9 = 'workspace 9'
+ctrl-alt-0 = 'workspace 10'  # number row reads 1234567890, so 0 is the 10th key
+
+# --focus-follows-window: go with the window instead of staying behind.
+ctrl-alt-shift-1 = 'move-node-to-workspace --focus-follows-window 1'
+ctrl-alt-shift-2 = 'move-node-to-workspace --focus-follows-window 2'
+ctrl-alt-shift-3 = 'move-node-to-workspace --focus-follows-window 3'
+ctrl-alt-shift-4 = 'move-node-to-workspace --focus-follows-window 4'
+ctrl-alt-shift-5 = 'move-node-to-workspace --focus-follows-window 5'
+ctrl-alt-shift-6 = 'move-node-to-workspace --focus-follows-window 6'
+ctrl-alt-shift-7 = 'move-node-to-workspace --focus-follows-window 7'
+ctrl-alt-shift-8 = 'move-node-to-workspace --focus-follows-window 8'
+ctrl-alt-shift-9 = 'move-node-to-workspace --focus-follows-window 9'
+ctrl-alt-shift-0 = 'move-node-to-workspace --focus-follows-window 10'
+
+ctrl-alt-tab = 'workspace-back-and-forth'
+ctrl-alt-shift-tab = 'focus-back-and-forth'  # same idea, one level down: last *window*
+
+# Monitors.
+ctrl-alt-leftSquareBracket = 'focus-monitor left'
+ctrl-alt-rightSquareBracket = 'focus-monitor right'
+ctrl-alt-shift-leftSquareBracket = 'move-workspace-to-monitor left'
+ctrl-alt-shift-rightSquareBracket = 'move-workspace-to-monitor right'
+
+ctrl-alt-shift-semicolon = 'mode service'
+ctrl-alt-r = 'mode resize'
+
+# One-key fix for the common auto-tiling annoyance: one window squeezed to a
+# sliver next to a huge one. Resets every window in the workspace to an equal
+# share without destroying the layout (unlike flatten-workspace-tree).
+ctrl-alt-b = 'balance-sizes'
+
+# Resize mode. Hold no modifiers - tap h/j/k/l as many times as you need, then
+# esc. This is the i3 idiom, and it exists because chording ctrl-alt-minus
+# twenty times to fix one bad split is miserable.
+#
+# While this mode is active AeroSpace grabs bare h/j/k/l globally, exactly as
+# service mode already does, so tmux sees nothing until you press esc.
+[mode.resize.binding]
+h = 'resize width -50'
+l = 'resize width +50'
+j = 'resize height +50'
+k = 'resize height -50'
+
+# Coarse steps for when 50pt at a time is too slow.
+shift-h = 'resize width -200'
+shift-l = 'resize width +200'
+shift-j = 'resize height +200'
+shift-k = 'resize height -200'
+
+b = ['balance-sizes', 'mode main']
+esc = 'mode main'
+enter = 'mode main'
+
+[mode.service.binding]
+esc = ['reload-config', 'mode main']
+r = ['flatten-workspace-tree', 'mode main']  # reset layout
+f = ['layout floating tiling', 'mode main']  # toggle floating/tiling
+backspace = ['close-all-windows-but-current', 'mode main']
+
+h = ['join-with left', 'mode main']
+j = ['join-with down', 'mode main']
+k = ['join-with up', 'mode main']
+l = ['join-with right', 'mode main']
+
+# Float rules. None are shipped deliberately - use ctrl-alt-f and only promote a
+# window to a rule here if it keeps misbehaving. Modern syntax, for reference:
+#
+# [[on-window-detected]]
+# if = 'test %{app-bundle-id} = com.apple.systempreferences'
+# run = 'layout floating'
