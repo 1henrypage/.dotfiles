@@ -74,5 +74,6 @@
   },
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
-  "skipWorkflowUsageWarning": true
+  "skipWorkflowUsageWarning": true,
+  "editorMode": "vim"
 }
