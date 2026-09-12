@@ -14,6 +14,12 @@
 #   ctrl-alt-1..9  switch workspace                       (here)
 #   ctrl-alt-<letter>        switch to named workspace              (here)
 #   ctrl-alt-shift-<letter>  move window to named workspace         (here)
+#   ctrl-alt-cmd-1..9, ctrl-alt-cmd-<letter>  summon workspace to focused
+#                                              monitor, with a two-way swap  (here)
+#
+# ctrl-alt-cmd-8 collides with the macOS default "Invert colors" hotkey
+# (⌃⌥⌘8, symbolic hotkey 21) - scripts/macos/common/macos-aerospace.sh
+# disables it so this binding actually reaches AeroSpace.
 #
 # `b f h j k l r` are reserved for the window-management bindings below and are
 # therefore NOT workspace letters. Binding a new ctrl-alt-<letter> steals a
@@ -45,10 +51,16 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 # not found and fails silently. Same truncated-GUI-PATH class of bug that
 # .claude/ARCHITECTURE.md section 3 documents for the tmux server.
 #
-# Colours are kitty's: 0xff769ff0 = kitty active_border_color / color4,
-# 0xff394260 = kitty selection_background.
+# active_color 0xffff0000 is bare, maximum-saturation red - not tied to any
+# kitty palette entry, chosen purely so the focused window is unmissable.
+# inactive_color 0xff394260 is still kitty's selection_background.
+# width=12.0 hidpi=on: hidpi=on keeps the edge crisp on the Retina panel
+# instead of rasterising at 1x; width bumped from 8.0 for visibility, which
+# needed inner gaps raised alongside it (see [gaps] below) so adjacent
+# windows' borders don't visually merge across the gap.
 after-startup-command = [
-  'exec-and-forget /opt/homebrew/bin/borders active_color=0xff769ff0 inactive_color=0xff394260 width=6.0'
+  'exec-and-forget /opt/homebrew/bin/borders active_color=0xffff0000 inactive_color=0xff394260 width=12.0 hidpi=on',
+  'exec-and-forget "$HOME/.config/aerospace/normalize-workspaces.sh"'
 ]
 
 # Normalization - keep the tree free of redundant containers.
@@ -61,8 +73,13 @@ default-root-container-layout = 'tiles'
 default-root-container-orientation = 'auto'
 
 # Keep the pointer with the focused monitor so hover-sensitive UI and the
-# menu bar follow the keyboard.
-on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+# menu bar follow the keyboard. The normalize call comes second so it never
+# delays the pointer move; it's also the self-heal path for a workspace >= 11
+# left over from a monitor docked mid-session (see normalize-workspaces.sh).
+on-focused-monitor-changed = [
+  'move-mouse monitor-lazy-center',
+  'exec-and-forget "$HOME/.config/aerospace/normalize-workspaces.sh"'
+]
 
 # Keyboard software layout is ABC (US) on German ISO keycaps, so qwerty is
 # correct here: the keys labelled `ü` and `+` send [ and ].
@@ -70,8 +87,10 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 preset = 'qwerty'
 
 [gaps]
-inner.horizontal = 8
-inner.vertical = 8
+# inner raised from 8 to 12 alongside the borders width=12.0 bump above, so
+# two adjacent windows' 12px borders don't touch/merge across the gap.
+inner.horizontal = 12
+inner.vertical = 12
 outer.left = 8
 outer.bottom = 8
 outer.top = 8
@@ -190,11 +209,49 @@ ctrl-alt-shift-z = 'move-node-to-workspace --focus-follows-window Z'
 ctrl-alt-tab = 'workspace-back-and-forth'
 ctrl-alt-shift-tab = 'focus-back-and-forth'  # same idea, one level down: last *window*
 
-# Monitors.
-ctrl-alt-leftSquareBracket = 'focus-monitor left'
-ctrl-alt-rightSquareBracket = 'focus-monitor right'
-ctrl-alt-shift-leftSquareBracket = 'move-workspace-to-monitor left'
-ctrl-alt-shift-rightSquareBracket = 'move-workspace-to-monitor right'
+# Monitors. --wrap-around: without it, ctrl-alt-] from the rightmost monitor
+# is a no-op, which on a two-monitor setup makes half the presses dead.
+ctrl-alt-leftSquareBracket = 'focus-monitor --wrap-around left'
+ctrl-alt-rightSquareBracket = 'focus-monitor --wrap-around right'
+ctrl-alt-shift-leftSquareBracket = 'move-workspace-to-monitor --wrap-around left'
+ctrl-alt-shift-rightSquareBracket = 'move-workspace-to-monitor --wrap-around right'
+
+# Summon workspace to the focused monitor, with a true two-way swap: whatever
+# was on the focused monitor goes to wherever the target used to be. Plain
+# summon-workspace doesn't swap - see summon-workspace-swap.sh. Same
+# digit/letter split as the ctrl-alt block above; ctrl-alt-cmd-8 collides
+# with macOS's default Invert-colors hotkey, disabled in
+# scripts/macos/common/macos-aerospace.sh.
+ctrl-alt-cmd-1 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 1'
+ctrl-alt-cmd-2 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 2'
+ctrl-alt-cmd-3 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 3'
+ctrl-alt-cmd-4 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 4'
+ctrl-alt-cmd-5 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 5'
+ctrl-alt-cmd-6 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 6'
+ctrl-alt-cmd-7 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 7'
+ctrl-alt-cmd-8 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 8'
+ctrl-alt-cmd-9 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 9'
+ctrl-alt-cmd-0 = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" 10'
+
+ctrl-alt-cmd-a = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" A'
+ctrl-alt-cmd-c = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" C'
+ctrl-alt-cmd-d = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" D'
+ctrl-alt-cmd-e = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" E'
+ctrl-alt-cmd-g = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" G'
+ctrl-alt-cmd-i = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" I'
+ctrl-alt-cmd-m = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" M'
+ctrl-alt-cmd-n = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" N'
+ctrl-alt-cmd-o = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" O'
+ctrl-alt-cmd-p = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" P'
+ctrl-alt-cmd-q = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" Q'
+ctrl-alt-cmd-s = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" S'
+ctrl-alt-cmd-t = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" T'
+ctrl-alt-cmd-u = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" U'
+ctrl-alt-cmd-v = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" V'
+ctrl-alt-cmd-w = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" W'
+ctrl-alt-cmd-x = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" X'
+ctrl-alt-cmd-y = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" Y'
+ctrl-alt-cmd-z = 'exec-and-forget "$HOME/.config/aerospace/summon-workspace-swap.sh" Z'
 
 ctrl-alt-shift-semicolon = 'mode service'
 ctrl-alt-r = 'mode resize'
@@ -231,22 +288,34 @@ esc = ['reload-config', 'mode main']
 r = ['flatten-workspace-tree', 'mode main']  # reset layout
 f = ['layout floating tiling', 'mode main']  # toggle floating/tiling
 backspace = ['close-all-windows-but-current', 'mode main']
+n = ['exec-and-forget "$HOME/.config/aerospace/normalize-workspaces.sh"', 'mode main']  # manual stray-workspace kick
 
 h = ['join-with left', 'mode main']
 j = ['join-with down', 'mode main']
 k = ['join-with up', 'mode main']
 l = ['join-with right', 'mode main']
 
-# Float rules. None are shipped deliberately - use ctrl-alt-f and only promote a
-# window to a rule here if it keeps misbehaving. Modern syntax, for reference:
+# Float rules. Exactly one is shipped: the ctrl-alt-space window picker.
+# Every other candidate is deliberately NOT a rule - use ctrl-alt-f and only
+# promote a window to a rule here if it keeps misbehaving. An app- or
+# bundle-id rule can misfire on any ordinary window of that app; this one
+# keys on a window title *we* set ourselves (kitty --title aerospace-picker,
+# see ctrl-alt-space above), so unlike an app-identity rule it cannot match
+# anything else.
+[[on-window-detected]]
+if = 'test %{window-title} ~= aerospace-picker'
+run = ['layout floating']
+
+# Modern syntax, for reference, for a float rule keyed on app identity
+# instead of a title we control:
 #
 # [[on-window-detected]]
 # if = 'test %{app-bundle-id} = com.apple.systempreferences'
 # run = 'layout floating'
 #
-# Nor are app-to-workspace rules, for the same reason: on-window-detected fires
-# per *new window*, so a rule pinning a browser would teleport you every time you
-# opened a second window. Form, if you ever want one:
+# Nor are app-to-workspace rules shipped, for the same reason: on-window-detected
+# fires per *new window*, so a rule pinning a browser would teleport you every
+# time you opened a second window. Form, if you ever want one:
 #
 # [[on-window-detected]]
 # if = 'test %{app-bundle-id} = com.spotify.client'

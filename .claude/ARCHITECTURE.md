@@ -196,6 +196,11 @@ These configs are entangled; changing one in isolation breaks another.
   | `ctrl-alt-1`..`ctrl-alt-9`, `ctrl-alt-0` (= workspace 10), `ctrl-alt-tab` | AeroSpace | switch workspace |
   | `ctrl-alt-<letter>` | AeroSpace | switch to named workspace |
   | `ctrl-alt-shift-<letter>` | AeroSpace | move window to named workspace |
+  | `ctrl-alt-cmd-1`..`ctrl-alt-cmd-9`, `ctrl-alt-cmd-0`, `ctrl-alt-cmd-<letter>` | AeroSpace | summon workspace to focused monitor, with a two-way swap |
+
+  `ctrl-alt-cmd-8` collides with macOS's default "Invert colors" hotkey (⌃⌥⌘8,
+  symbolic hotkey 21); `scripts/macos/common/macos-aerospace.sh` disables it so the
+  binding actually reaches AeroSpace.
 
   Bind `alt-*` in `aerospace.toml` and tmux window switching dies silently in *every* kitty
   window; bind `ctrl-alt-*` in `tmux.conf` and AeroSpace eats it before tmux is reached.
@@ -230,9 +235,13 @@ These configs are entangled; changing one in isolation breaks another.
   (not a bug):
   - kitty (`kitty.conf`) and starship (`starship.toml`) share an **identical hardcoded hex
     palette** (`#1d2230` bg, `#e3e5e5` fg, `#769ff0`, `#a3aed2`, `#394260`, `#212736`, …).
-    `#769ff0` and `#394260` are hardcoded a **third** time in `config/aerospace/aerospace.toml`
-    (as `0xff769ff0` / `0xff394260`, JankyBorders' `0xAARRGGBB` form) for the focused/unfocused
-    window border, so a kitty palette change now needs a matching edit there.
+    `config/aerospace/aerospace.toml` hardcodes a **third** copy for the JankyBorders
+    focused/unfocused window border, but it no longer tracks the kitty palette at all for the
+    active colour: `0xffff0000`, bare maximum-saturation red, picked purely for visibility and
+    unrelated to Tokyo Night. The inactive colour is still kitty's `selection_background`
+    (`0xff394260`). A kitty palette change now needs a matching edit to the inactive colour only.
+    The border's `width=12.0` also forced `[gaps] inner.horizontal`/`inner.vertical` up from 8 to
+    12 in the same file, so two adjacent windows' borders don't visually merge across the gap.
   - tmux's status line is now **hand-rolled directly in `tmux.conf`** (the
     `janoamaral/tokyo-night-tmux` plugin it used to come from is deleted, see below) with its own
     hardcoded Tokyo Night `night`-theme hex palette, lifted from the plugin before deletion — a

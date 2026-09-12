@@ -58,13 +58,24 @@ The single most confusing thing about this repo. They are unrelated:
   citing by name instead of line number for it).
 - **`brew upgrade` upgrades every installed formula/cask**, not just Brewfile entries — that's why
   it's gated to the personal profile only.
-- **AeroSpace owns `ctrl-alt` globally; tmux owns bare `alt` and bare `ctrl`.** AeroSpace registers
-  *global* macOS hotkeys, so it intercepts a keystroke before kitty (and therefore tmux/nvim) ever
-  sees it. Never bind `alt-*` in `config/aerospace/aerospace.toml` - it would shadow tmux window
-  switching (`M-1`..`M-9`) and pane resize in every kitty window - and never bind `ctrl-alt-*` in
-  `tmux.conf`, because AeroSpace swallows it first. `macos_option_as_alt left` does not help:
-  macOS hotkey registration cannot distinguish left Option from right. Full table in
+- **AeroSpace owns `ctrl-alt` (and now `ctrl-alt-cmd`) globally; tmux owns bare `alt` and bare
+  `ctrl`.** AeroSpace registers *global* macOS hotkeys, so it intercepts a keystroke before kitty
+  (and therefore tmux/nvim) ever sees it. Never bind `alt-*` in `config/aerospace/aerospace.toml`
+  - it would shadow tmux window switching (`M-1`..`M-9`) and pane resize in every kitty window -
+  and never bind `ctrl-alt-*` in `tmux.conf`, because AeroSpace swallows it first.
+  `macos_option_as_alt left` does not help: macOS hotkey registration cannot distinguish left
+  Option from right. `ctrl-alt-cmd-<digit>` / `ctrl-alt-cmd-<letter>` summon a workspace onto the
+  focused monitor (`summon-workspace-swap.sh`); `ctrl-alt-cmd-8` collides with macOS's default
+  Invert-colors hotkey, which `scripts/macos/common/macos-aerospace.sh` disables. Full table in
   `ARCHITECTURE.md` §3.
+- **AeroSpace has no upstream cap on the workspace list.** Once every workspace a binding can
+  reach is already owned by some monitor, attaching another monitor makes AeroSpace materialise
+  workspace `11`, `12`, ... with no binding able to reach them
+  (https://github.com/nikitabobko/AeroSpace/issues/651, closed with no fix).
+  `config/aerospace/normalize-workspaces.sh` is the only thing enforcing the cap - it evicts any
+  workspace outside the bound `ctrl-alt-*` set, wired from `after-startup-command`,
+  `on-focused-monitor-changed`, and the service-mode `n` binding. Deleting it (or breaking its
+  wiring) silently brings workspace `11` back the next time a monitor is attached.
 - **`ctrl-alt-<letter>` is a named-workspace namespace, not free real estate.** 19 letters
   (`a c d e g i m n o p q s t u v w x y z`) are bound to `workspace <LETTER>` /
   `move-node-to-workspace --focus-follows-window <LETTER>` for mnemonic workspaces (e.g.
