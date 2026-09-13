@@ -1,7 +1,7 @@
 #!/bin/sh
 # Git widget for tmux status-right: branch + dirty file count only. No `git fetch`, no
-# `git log @{push}..`, no `git ls-files` - this widget never touches the network (see
-# ARCHITECTURE.md for why the old tokyo-night-tmux git-status.sh did, silently, every 5min).
+# `git log @{push}..`, no `git ls-files` - this widget never touches the network; the
+# previous plugin widget did that silently every five minutes.
 # TTL-cached per repo. bash 3.2-safe by construction: this is /bin/sh, not bash.
 
 DIR="${1:-$PWD}"
@@ -41,9 +41,9 @@ dirty=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 # nerd-font branch glyph (flat/minimalist, not an emoji) - verified against
 # FantasqueSansMNerdFontMono's cmap.
 if [ "$dirty" -gt 0 ] 2>/dev/null; then
-  out="#[fg=#bb9af7] ${branch} #[fg=#e0af68]±${dirty}#[fg=#a9b1d6]"
+  out="#[fg=#a8a9eb] ${branch} #[fg=#f9cc6c]±${dirty}#[fg=#c3b7b8]"
 else
-  out="#[fg=#bb9af7] ${branch}#[fg=#a9b1d6]"
+  out="#[fg=#a8a9eb] ${branch}#[fg=#c3b7b8]"
 fi
 
 printf '%s' "$out" >"$cache_file"

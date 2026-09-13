@@ -1,6 +1,6 @@
 #!/bin/sh
 # Battery widget for tmux status-right. TTL-cached, no GNU coreutils, no `brew --prefix`
-# (see ARCHITECTURE.md for why the old tokyo-night-tmux widget forked that unconditionally).
+# (the previous plugin widget forked that unconditionally).
 # bash 3.2-safe by construction: this is /bin/sh, not bash.
 
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/tmux-statusbar"
@@ -50,11 +50,11 @@ idx=$((pct / 10))
 icon=$(printf '%s' "$ramp" | awk -v i="$idx" '{print $(i+1)}')
 
 if [ "$pct" -lt 20 ] 2>/dev/null; then
-  color="#f7768e"
+  color="#fd6883"
 else
-  color="#73daca"
+  color="#adda78"
 fi
 
-out="#[fg=${color}]${icon} ${pct}%#[fg=#a9b1d6]"
+out="#[fg=${color}]${icon} ${pct}%#[fg=#c3b7b8]"
 printf '%s' "$out" >"$CACHE_FILE"
 printf '%s' "$out"
