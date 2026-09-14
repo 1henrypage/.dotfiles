@@ -23,10 +23,12 @@ The single most confusing thing about this repo. They are unrelated:
   or it won't show in `git status`.
 - **`config/claude/`** = the user's **live global `~/.claude`**, force-symlinked in on the
   **personal** install profile (`symlinks.yaml`, `if: DOTFILES_PROFILE = personal`). Editing
-  anything under it mutates **live, machine-wide Claude Code state**. Only 7 entries are tracked
-  (`.gitignore`, `CLAUDE.md`, `WRITING.md`, `settings.json`, `hooks/notify.sh`,
-  `commands/.gitkeep`, and a tracked symlink `skills -> ../skills` that pulls in the real skill
-  directories from `config/skills/`); runtime state (sessions, history, projects, cache) lives in
+  anything under it mutates **live, machine-wide Claude Code state**. Only 6 entries are tracked
+  (`.gitignore`, `CLAUDE.md`, `WRITING.md`, `settings.json`, `commands/.gitkeep`, and a tracked
+  symlink `skills -> ../skills` that pulls in the real skill directories from `config/skills/`);
+  the `hooks` block of `settings.json` is **owned by the agentmux installer** (see the agentmux
+  bullet under Footguns) - edit it through `bin/agentmux install-hooks`, not by hand; runtime
+  state (sessions, history, projects, cache) lives in
   the working tree but is gitignored via **two** layers — root `.gitignore` +
   `config/claude/.gitignore`. **Never `git add`** that runtime state.
   On the **corporate** profile (`install.sh --corporate`), only `~/.claude/CLAUDE.md`
@@ -98,6 +100,20 @@ The single most confusing thing about this repo. They are unrelated:
   Relatedly, a `#{?...}` condition must be inline - factored into an option and referenced as
   `#{?#{E:@opt},a,b}` it is always false, because a bare `1`/`0` there is read as a variable name.
   Both are documented in place in `tmux.conf`; see `ARCHITECTURE.md` §3.
+- **agentmux owns the tab badges, the `prefix a` sidebar and the Claude/Codex hooks.** It is a
+  separate repo (`~/projects/agentmux`, TPM plugin `1henrypage/agentmux`); `symlinks.yaml` links
+  the dev checkout into `${XDG_DATA_HOME}/tmux/plugins/agentmux` when it exists, other machines
+  clone it via `prefix I`. `tmux.conf` only references `#{E:@agentmux_badge}` / `_label` /
+  `_timer` and sets `@agentmux_*` colours; `install.sh` runs `bin/agentmux install-hooks
+  --purge-legacy` after TPM on both profiles, which is the only thing that should touch the
+  `hooks` block of `config/claude/settings.json`. Hooks snapshot at agent start: after changing
+  them, restart running agents (and run `/hooks` once in Codex). The plugin turns `set-titles on`,
+  so kitty's window title becomes `session:window[ - agent blocked| - agent done]` - intended.
+  Contract: `~/projects/agentmux/docs/CONTRACT.md`.
+- **Two more tmux-format footguns, learned from agentmux:** inside `#{s/pat/rep/:...}` a `;`
+  or `:` in the *pattern* terminates the modifier (write `[|]`, never `:`), and bash 3.2 (macOS
+  `/bin/sh`) silently brace-expands nested `#{..#{..},..}` written inside a quoted `"$(...)"`.
+  Build formats from variables, never inside a command substitution.
 - **`macos-openwhispr.sh:70`** strips the Gatekeeper quarantine flag
   (`xattr -dr com.apple.quarantine`) from a freshly-downloaded, unsigned `.app`.
 

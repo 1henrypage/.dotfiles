@@ -273,19 +273,26 @@ These configs are entangled; changing one in isolation breaks another.
   invocation just to prepend GNU coreutils/gawk/bc to `PATH`. At 4 windows and `status-interval 5`
   that was ~770ms of subprocess CPU every 5 seconds (~15% of a core, forever) plus a periodic
   network hit from the status line. The replacement's tab line does zero
-  forks: a Claude Code hook (`config/claude/hooks/claude-tmux-state.sh`, wired in
-  `config/claude/settings.json`'s `hooks` block for `SessionStart`/`UserPromptSubmit`/
-  `PermissionRequest`/`Stop`/`SessionEnd`) writes `@claude_state`/`@claude_start`/`@claude_project`
-  as **pane** options (`tmux set -p`) and calls `refresh-client -S` for an immediate redraw; the
-  format side reads them back natively via `#{P:...}` (loop panes in a window), `#{E:@opt}` (expand
-  an option's own format-string content — used to factor the pane-loop/badge/label/timer
-  subexpressions out of the four-way ladder instead of repeating them), `#{m:*pattern*,...}`
-  (worst-state-wins: blocked > done > working > idle), and `%s`/`#{e|-|:...}`/`#{e|/|:...}`/
-  `#{e|m|:...}` (elapsed-time arithmetic — note the modulo operator is `m`, not `%`) — all native
-  tmux formats, no `#()`. Self-healing: the pane-loop gates on
-  `#{==:#{pane_current_command},claude}` (tracked natively by tmux, zero forks) so a `kill -9`'d or
-  Ctrl-C'd Claude (which doesn't fire the `Stop` hook) still clears its badge on the next redraw
-  once the pane's foreground process reverts to the shell — no manual reset. The only three
+  forks: agent state comes from **agentmux** (a standalone TPM plugin, `set -g @plugin
+  '1henrypage/agentmux'`, dev checkout `~/projects/agentmux` symlinked into the TPM dir by
+  `symlinks.yaml` on this machine, cloned from GitHub elsewhere). Claude Code and Codex hooks
+  (registered by `bin/agentmux install-hooks`, which `install.sh` runs after TPM on both
+  profiles) run `hooks/agentmux-hook`, a dependency-free POSIX sh script that writes
+  `@agentmux_state`/`_kind`/`_project`/`_start`/`_subagents`/`_detail`/`_updated` as **pane**
+  options (`tmux set -p`) in one round-trip and `refresh-client -S`es every client; the plugin's
+  `agentmux.tmux` publishes `#{E:@agentmux_badge}` / `_label` / `_timer`, which is all
+  `tmux.conf` references. States: `idle`, `working`, `delegating` (main turn ended while
+  sub-agents still run, count shown), `blocked`, `done` (persists until the window is viewed,
+  then flips to `idle` via a `run-shell -C` hook, no fork). Self-healing: a pane's state only
+  counts while `pane_current_command` is not a shell, so a `kill -9`'d agent clears on the next
+  redraw, and anything older than `@agentmux_ttl` renders idle. omnigent-launched agents
+  (private `tmux -S` server) are attributed to the outer pane by matching the private server's
+  client tty against the default server's pane ttys; remote agents (ssh, `dbexec`) arrive
+  through the pane title (`AGX1|...` packed by the remote tmux's `set-titles-string`, decoded
+  by the `pane-title-changed` hook into `@agentmux_r_*`). `prefix a` toggles a 46-column
+  sidebar (python3, one `list-panes -a` per second while a timer ticks, woken by `wait-for`)
+  that follows the current window and can never take focus. Contract, grammar and state
+  machine: `~/projects/agentmux/docs/CONTRACT.md`. The only three
   remaining forks (`battery.sh`, `git.sh`, `memory.sh` — all in `status-right`, so once per redraw,
   never per-window) are TTL-cached (30s / 3s / 10s) and never touch GNU coreutils or the network —
   `git.sh` shows branch + dirty count only, deliberately dropping the old sync-status feature
@@ -325,10 +332,15 @@ These configs are entangled; changing one in isolation breaks another.
   **Prefix indicator:** the session pill restyles to an inverted amber block while the `C-a` prefix
   is armed (`#{?client_prefix,...}` on both `fg=` and `bg=`), which costs no extra columns.
 
-  One accepted gap: `@claude_start` is
-  pane-scoped, so in a split where the focused pane isn't the Claude pane, the badge still reflects
-  it via the pane loop but the elapsed timer (window-scoped active-pane fallthrough) doesn't render
-  for it.
+  Split windows: the badge is a worst-state ladder over every pane in the window; the label and
+  timer follow the active pane when it is a live agent, else the first live agent pane.
+
+  **Two format footguns agentmux hit that the old hand-rolled version never did:** inside a
+  `#{s/pattern/repl/:...}` modifier a `;` or `:` in the *pattern* terminates the modifier (so
+  patterns are written with bracket expressions like `[|]` and never contain either), and
+  **bash 3.2 (macOS `/bin/sh`) mis-parses nested `#{..#{..},..}` inside a quoted `"$(...)"`**,
+  silently brace-expanding the format. `agentmux.tmux` therefore assembles every format from
+  variables and never inside a command substitution.
 - **tmux PATH + plugin path:** because tmux is now `exec`'d from a real login zsh (previous
   bullet) instead of being launched directly by kitty with a truncated GUI PATH, the tmux server
   simply *inherits* a correct, fully-exported environment — `PATH` and `TMUX_PLUGIN_MANAGER_PATH`
@@ -381,8 +393,8 @@ Everything below describes the **personal** profile, where `~/.claude` is force-
 wholesale to this directory. Under `--corporate` only `CLAUDE.md` and per-skill links under
 `skills/` are linked in individually, without `force` — see §9.
 
-**Tracked** (8 entries — `git ls-files config/claude`): `.gitignore`, `CLAUDE.md`, `WRITING.md`,
-`settings.json`, `hooks/notify.sh`, `hooks/claude-tmux-state.sh`, `commands/.gitkeep`, and
+**Tracked** (6 entries — `git ls-files config/claude`): `.gitignore`, `CLAUDE.md`, `WRITING.md`,
+`settings.json`, `commands/.gitkeep`, and
 **`skills`** — the last entry is not a directory but a **tracked symlink**
 (`config/claude/skills -> ../skills`), git mode `120000`.
 Skills themselves moved to the tool-neutral `config/skills/`; this one committed symlink is what
@@ -402,15 +414,22 @@ for current values:
   model and the default-Opus-alias model.
 - top-level: `model`, `effortLevel`, `showClearContextOnPlanAccept`,
   `skipDangerousModePermissionPrompt`, `skipWorkflowUsageWarning`, `enabledPlugins`.
-- **`hooks`**: `SessionStart`, `UserPromptSubmit`, `PermissionRequest`, `Stop`, and `SessionEnd`
-  all run `hooks/claude-tmux-state.sh <state>` (personal profile only, since corporate never
-  links `settings.json` — see §9), which bridges Claude's state into the tmux status line as pane
-  options (see §3's hook → pane-option → format contract bullet). On `blocked`, if the requesting
-  window isn't focused, it also shells out to `hooks/notify.sh` (a cross-platform desktop
-  notification script) for a `title`/`message` popup. Both scripts must be `chmod +x` and are
-  called by absolute-resolved path (`command -v tmux`, falling back to a candidate-path list) since
-  a hook does not inherit a login shell's `PATH` — same class of fix as
-  `config/aerospace/window-picker.sh`.
+- **`hooks`**: every entry is written by agentmux's installer (`bin/agentmux install-hooks`,
+  run by `install.sh` after TPM on both profiles) and runs
+  `~/.local/share/tmux/plugins/agentmux/hooks/agentmux-hook claude <Event>` for `SessionStart`
+  (matcher `startup|resume|clear`), `SessionEnd`, `UserPromptSubmit`, `Stop`, `SubagentStart`,
+  `SubagentStop`, `PermissionRequest`, `Notification` (elicitation / agent input / idle
+  prompt), `PreToolUse` (`AskUserQuestion|ExitPlanMode`) and `PostToolUse`/`PostToolUseFailure`
+  (a negative-lookahead matcher that skips read-only tools). The installer merges by tag (any
+  hook whose command contains `agentmux-hook` is "ours"), leaves every other key and foreign hook
+  untouched, is idempotent, and rewrites the file in place (`cat tmp > file`) so this symlinked
+  file keeps its identity; `--purge-legacy` also removes the pre-agentmux
+  `hooks/claude-tmux-state.sh` entries. The old `hooks/` scripts are gone — the state bridge and
+  the desktop notification (`bin/agentmux notify`, `terminal-notifier` or `osascript`, no
+  sound, only for windows you are not looking at) live in the plugin now. On the corporate
+  profile the same installer merges into the enterprise-provisioned `~/.claude/settings.json`.
+  The hook resolves `tmux` by `command -v` with a candidate-path fallback, since hooks do not
+  inherit a login shell's `PATH` (same class of fix as `config/aerospace/window-picker.sh`).
 
 **Two-layer gitignore** keeps runtime state out of git:
 - root `.gitignore:6-9` — `config/claude/daemon/`, `config/claude/image-cache/`,

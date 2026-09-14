@@ -472,6 +472,19 @@ if [ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]; then
         record_failure "tmux plugin install"
     fi
 fi
+# agentmux (tmux agent overview) registers its hook with Claude Code + Codex. Idempotent; runs
+# on both profiles (corporate ~/.claude/settings.json is merged into, never replaced).
+# --purge-legacy also drops the pre-agentmux claude-tmux-state.sh entries if a machine still
+# carries them.
+agentmux_bin="${TMUX_PLUGIN_MANAGER_PATH:-$HOME/.local/share/tmux/plugins}/agentmux/bin/agentmux"
+[ -x "$agentmux_bin" ] || agentmux_bin="$HOME/.tmux/plugins/agentmux/bin/agentmux"
+if [ -x "$agentmux_bin" ]; then
+    if ! "$agentmux_bin" install-hooks --purge-legacy; then
+        record_failure "agentmux install-hooks"
+    fi
+else
+    record_failure "agentmux install-hooks (plugin not installed)"
+fi
 if [ -x "$(command -v zsh)" ]; then
     if ! /bin/zsh -i -c "antigen update && antigen-apply"; then
         record_failure "antigen update"

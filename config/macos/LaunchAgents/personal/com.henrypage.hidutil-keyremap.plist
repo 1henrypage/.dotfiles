@@ -15,7 +15,11 @@
     <key>RunAtLoad</key>
     <true/>
 
+    <!-- Short on purpose: the built-in keyboard's HID service can be torn down and
+         re-matched across sleep/wake (this machine sleeps/wakes dozens of times a day),
+         which drops the UserKeyMapping until the next reapply. A short interval bounds
+         that gap to a couple seconds instead of leaving it flaky for up to 30s. -->
     <key>StartInterval</key>
-    <integer>30</integer>
+    <integer>3</integer>
 </dict>
 </plist>

@@ -18,10 +18,11 @@
 # Requires Input Monitoring permission (System Settings > Privacy & Security > Input Monitoring)
 # for whatever process invokes this script - without it, hidutil silently *stores* the mapping
 # (`hidutil property --get "UserKeyMapping"` looks correct) but does not actually rewrite key
-# events, and there is no interactive prompt or error to signal that.
+# events, and there is no interactive prompt or error to signal that. `exec` below so the
+# running process becomes hidutil itself (same PID, new image) instead of staying /bin/sh with
+# hidutil as a child - only /usr/bin/hidutil needs the grant, not the shell too.
 
-echo "Applying hidutil key remap..."
-hidutil property --set '{"UserKeyMapping":[
+exec hidutil property --set '{"UserKeyMapping":[
   {"HIDKeyboardModifierMappingSrc":0x700000035,
    "HIDKeyboardModifierMappingDst":0x700000064},
   {"HIDKeyboardModifierMappingSrc":0x700000064,

@@ -13,6 +13,12 @@
     ~/.zshrc: { path: config/zsh/.zshrc, force: true }
     ~/.tmux/plugins/tpm: lib/tpm
     ~/.tmux.conf: config/tmux/tmux.conf
+    # agentmux (tmux agent overview, set -g @plugin '1henrypage/agentmux' in tmux.conf): on the
+    # machine that carries the dev checkout, TPM must use it instead of cloning from GitHub, so
+    # the plugin slot points at the checkout. Anywhere else this entry is skipped and TPM clones.
+    ${XDG_DATA_HOME}/tmux/plugins/agentmux:
+      if: '[ -d "$HOME/projects/agentmux/.git" ]'
+      path: ~/projects/agentmux
 
     # ~/.claude - personal force-links the whole live global state wholesale to config/claude
     # (this entry); corporate instead links only CLAUDE.md + skills, without force, so

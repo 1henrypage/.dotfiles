@@ -114,6 +114,9 @@ alias x='codex --model gpt-5.6-sol --approve-for-me -c model_reasoning_effort="x
 alias ogc='omnigent claude --permission-mode auto --model opusplan --effort xhigh' # Claude Code via Omnigent terminal, auto perms
 alias ogx='omnigent codex --model gpt-5.6-sol --approve-for-me -c model_reasoning_effort="xhigh"' # Codex via Omnigent terminal, auto perms
 alias ogo='omnigent opencode --model moonshotai/kimi-k3 --auto' # OpenCode via Omnigent terminal, skip perms
+# isaac: same agent flags as ogc/ogx, different launcher. Keep the flag sets in sync.
+alias isc='isaac claude --permission-mode auto --model opusplan --effort xhigh' # Claude Code via isaac, auto perms
+alias isx='isaac codex --model gpt-5.6-sol --approve-for-me -c model_reasoning_effort="xhigh"' # Codex via isaac, auto perms
 
 # Alias for install script
 alias dotfiles="${DOTFILES_DIR:-$HOME/Documents/config/dotfiles}/install.sh"
