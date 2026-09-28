@@ -1,0 +1,20 @@
+# bob (Neovim version manager). symlinks.yaml links this into bob's platform default config
+# location (~/Library/Application Support/bob on macOS, $XDG_CONFIG_HOME/bob elsewhere) rather
+# than pointing BOB_CONFIG at it: the `nvim` on PATH is bob's proxy - a copy of bob itself - and
+# it re-reads this file on every launch, so it has to be found with no env var set.
+#
+# bob substitutes only one $VAR per value and panics if it is unset, hence $HOME over the XDG
+# variables, which are not exported in every context bob runs in (e.g. install.sh).
+
+# bob >= 4.2 resolves its default dirs with the `dirs` crate, which ignores XDG on macOS and
+# would move every install under ~/Library/Application Support. Pin the layout that
+# config/zsh/.zshenv puts on PATH. Must exist before bob runs (tool-neovim.sh creates it).
+downloads_location = '$HOME/.local/share/bob'
+
+# The Neovim version is pinned next to the config it is pinned for (lazy-lock.json lives in the
+# same repo). `bob use <version>` rewrites the file; `bob sync` installs and switches to it.
+version_sync_file_location = '$HOME/.config/nvim/nvim.version'
+
+# PATH is owned by config/zsh/.zshenv. Left unset, bob prompts on first `bob use`, or - when
+# non-interactive - appends to the shell rc files, which are symlinks into this repo.
+add_neovim_binary_to_path = false

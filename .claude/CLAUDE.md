@@ -97,23 +97,50 @@ The single most confusing thing about this repo. They are unrelated:
   `#{>=:100,80}` is *false*. Any numeric test (e.g. the status bar's `client_width` tiers) must use
   an arithmetic sign test instead: `#{e|-|:x,N}` goes negative iff `x < N`, detected with
   `#{m:-*,...}`. Silent, and it *looks* correct whenever both numbers have the same digit count.
-  Relatedly, a `#{?...}` condition must be inline - factored into an option and referenced as
-  `#{?#{E:@opt},a,b}` it is always false, because a bare `1`/`0` there is read as a variable name.
+  Relatedly, a `#{?...}` condition kept in an option must be referenced as `#{?#{E:@opt},a,b}`:
+  `#{?@opt,a,b}` and `#{?#{@opt},a,b}` test the raw option text and are always *true*, and a
+  literal `1`/`0` typed as the condition is read as a variable name, so `#{?1,a,b}` is false.
   Both are documented in place in `tmux.conf`; see `ARCHITECTURE.md` §3.
 - **agentmux owns the tab badges, the `prefix a` sidebar and the Claude/Codex hooks.** It is a
   separate repo (`~/projects/agentmux`, TPM plugin `1henrypage/agentmux`); `symlinks.yaml` links
   the dev checkout into `${XDG_DATA_HOME}/tmux/plugins/agentmux` when it exists, other machines
   clone it via `prefix I`. `tmux.conf` only references `#{E:@agentmux_badge}` / `_label` /
-  `_timer` and sets `@agentmux_*` colours; `install.sh` runs `bin/agentmux install-hooks
-  --purge-legacy` after TPM on both profiles, which is the only thing that should touch the
-  `hooks` block of `config/claude/settings.json`. Hooks snapshot at agent start: after changing
-  them, restart running agents (and run `/hooks` once in Codex). The plugin turns `set-titles on`,
-  so kitty's window title becomes `session:window[ - agent blocked| - agent done]` - intended.
-  Contract: `~/projects/agentmux/docs/CONTRACT.md`.
+  `_timer` / `_title_human` and sets `@agentmux_*` options; `install.sh` runs `bin/agentmux
+  install-hooks --purge-legacy` after TPM on both profiles, which is the only thing that should
+  touch the `hooks` block of `config/claude/settings.json`. Hooks snapshot at agent start: after
+  changing them, restart running agents (and run `/hooks` once in Codex). `set-titles-string` is
+  owned by `tmux.conf` (`@agentmux_titles off`) and embeds `#{E:@agentmux_title_human}`, so
+  kitty's window title is `session:window[ - agent blocked| - agent done]` - intended. agentmux
+  shows only its own server's agents; a remote tmux shows its own (next bullet). Contract:
+  `~/projects/agentmux/docs/CONTRACT.md`.
+- **Nested tmux is one contract across four places.** The `tmux@<host>: ` title mark
+  (`set-titles-string`, only on a tmux whose client is a tmux), `config/zsh/lib/title.zsh` (resets
+  the title at every prompt, which clears the mark on detach/exit), the `$NESTED` branch in
+  `status-format[0]`, and the `@nested_sync` hooks at index `[80]` (agentmux owns 70-79). Break
+  any one and the local bar either stays collapsed to the 1-row strip or never collapses; the
+  agentmux sidebar (`@agentmux_sidebar_skip "$NESTED"`) goes wrong the same way. `prefix p` is
+  passthrough, not previous-window. Full writeup: `ARCHITECTURE.md` §3.
+- **A nested tmux only gets OSC52 clipboard/title auto-detection on tmux >= 3.2** (its built-in
+  `tmux` terminal-features entry is applied via an XTVERSION probe/reply with the outer tmux); an
+  older remote tmux (Ubuntu 20.04's 3.0a, Debian 11's 3.1c) gets neither and fails silently -
+  `"+y`/`"*y` in a remote nvim (and the remote tmux's own copy-mode `y`) just stops at the nested
+  tmux's own paste buffer instead of reaching the host clipboard. `set -as terminal-features
+  ",tmux*:title:clipboard"` (`tmux.conf`) pins both explicitly so an old remote behaves like a
+  new one; it's a no-op, not a fix, on a remote that already auto-detects them. Not a
+  passthrough-mode problem - regular keys and OSC52 replies reach the remote pane regardless of
+  local key-table state. See `ARCHITECTURE.md` §3, "The clipboard" (also notes two unrelated
+  silent-failure edges: a yank from a backgrounded local window, and yanks past ~768 KB).
 - **Two more tmux-format footguns, learned from agentmux:** inside `#{s/pat/rep/:...}` a `;`
   or `:` in the *pattern* terminates the modifier (write `[|]`, never `:`), and bash 3.2 (macOS
   `/bin/sh`) silently brace-expands nested `#{..#{..},..}` written inside a quoted `"$(...)"`.
   Build formats from variables, never inside a command substitution.
+- **bob's config link is load-bearing on macOS.** `config/bob/config.toml` is linked into
+  `~/Library/Application Support/bob/` (bob ignores XDG there) and pins `downloads_location` to
+  `~/.local/share/bob`, the dir `.zshenv` puts on PATH. The `nvim` on PATH is bob's proxy and
+  re-reads that config on every launch, so dropping the link makes bob >= 4.2 look for installs
+  under `~/Library/Application Support/bob` and `nvim` stops working in every shell. The Neovim
+  version itself is pinned in `config/nvim/nvim.version` (`bob use` rewrites it, `bob sync`
+  installs it) - see `ARCHITECTURE.md` §2.
 - **`macos-openwhispr.sh:70`** strips the Gatekeeper quarantine flag
   (`xattr -dr com.apple.quarantine`) from a freshly-downloaded, unsigned `.app`.
 

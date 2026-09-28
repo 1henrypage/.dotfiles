@@ -1,5 +1,7 @@
 *.zwc
 lib/
+# ...but not the zsh lib/*.zsh that .zshrc sources (the rule above would hide new ones).
+!config/zsh/lib/
 .claude/*
 !.claude/CLAUDE.md
 !.claude/ARCHITECTURE.md

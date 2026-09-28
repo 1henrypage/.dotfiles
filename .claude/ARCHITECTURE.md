@@ -86,7 +86,8 @@ A clean machine comes up like this:
    - Post-install (runs on all platforms, after the Darwin block): `rustup default stable` if
      rustup exists; then `scripts/installs/tools/install.sh` — the cross-platform twin of the
      `scripts/macos/` runner, same `common/`+`personal` split (also fail-safe on
-     `= "personal"` now), globbing `tool-*.sh` (`tool-neovim.sh` — the bob/`v0.11.5` install — and
+     `= "personal"` now), globbing `tool-*.sh` (`tool-neovim.sh` - installs bob, then `bob sync`s the Neovim version
+     pinned in `config/nvim/nvim.version` - and
      `tool-java.sh`, both in `common/`; `personal/` currently holds no `tool-*.sh` scripts, so this
      split is latent there); then `/bin/zsh -i -c "antigen update && antigen-apply"` near the very
      end of the script, under **Apply Preferences**.
@@ -131,6 +132,8 @@ each need their own block). See §9 for how `if:` gating on `DOTFILES_PROFILE` w
 | `${XDG_CONFIG_HOME}/kitty` | `config/kitty` | |
 | `${XDG_CONFIG_HOME}/aerospace` | `config/aerospace` | |
 | `${XDG_CONFIG_HOME}/starship.toml` | `config/general/starship.toml` | |
+| `~/Library/Application Support/bob/config.toml` | `config/bob/config.toml` | Darwin-gated. bob only reads its platform default config dir, and the `nvim` on PATH is bob's proxy binary, which re-reads the config on every launch - so it is linked where bob looks rather than pointed at via `BOB_CONFIG`, which already-open shells would lack. Pins `downloads_location` to `~/.local/share/bob` (bob >= 4.2 otherwise moves everything under `~/Library/Application Support` on macOS, orphaning the `.zshenv` PATH entry), turns off bob's rc-file PATH editing, and points `version_sync_file_location` at `config/nvim/nvim.version` |
+| `${XDG_CONFIG_HOME}/bob/config.toml` | `config/bob/config.toml` | non-Darwin twin of the row above |
 | `${HOME}/.gitconfig` | `config/general/.gitconfig` | existence-guarded (`if:` requires the path doesn't exist **or** is already a symlink) — same pattern as `~/AGENTS.md`, no `force` |
 | `${XDG_CONFIG_HOME}/.gitignore_global` | `config/general/.gitignore_global` | |
 | `~/Library/LaunchAgents/` | `config/macos/LaunchAgents/common/*` | Darwin-gated, `glob: true`, both profiles |
@@ -287,12 +290,12 @@ These configs are entangled; changing one in isolation breaks another.
   counts while `pane_current_command` is not a shell, so a `kill -9`'d agent clears on the next
   redraw, and anything older than `@agentmux_ttl` renders idle. omnigent-launched agents
   (private `tmux -S` server) are attributed to the outer pane by matching the private server's
-  client tty against the default server's pane ttys; remote agents (ssh, `dbexec`) arrive
-  through the pane title (`AGX1|...` packed by the remote tmux's `set-titles-string`, decoded
-  by the `pane-title-changed` hook into `@agentmux_r_*`). `prefix a` toggles a 46-column
-  sidebar (python3, one `list-panes -a` per second while a timer ticks, woken by `wait-for`)
-  that follows the current window and can never take focus. Contract, grammar and state
-  machine: `~/projects/agentmux/docs/CONTRACT.md`. The only three
+  client tty against the default server's pane ttys. Each tmux server shows only its own
+  agents: a host you ssh into runs its own tmux and agentmux, and its agents show up there (see
+  the nested-tmux bullet below) - nothing is tunnelled back over ssh any more. `prefix a`
+  toggles a 46-column sidebar (python3, one `list-panes -a` per second while a timer ticks,
+  woken by `wait-for`) that follows the current window and can never take focus. Contract and
+  state machine: `~/projects/agentmux/docs/CONTRACT.md`. The only three
   remaining forks (`battery.sh`, `git.sh`, `memory.sh` — all in `status-right`, so once per redraw,
   never per-window) are TTL-cached (30s / 3s / 10s) and never touch GNU coreutils or the network —
   `git.sh` shows branch + dirty count only, deliberately dropping the old sync-status feature
@@ -301,27 +304,43 @@ These configs are entangled; changing one in isolation breaks another.
   **Layout.** `status 2`, both slots set **explicitly** — tmux 3.7 defaults `status-format[0]` to
   the everything-on-one-line format, `[1]` to a *pane* list and `[2]` to a *session* list, so
   leaving either unset silently shows the wrong thing. `[0]` (top) is the **window/tab list**,
-  `#[align=centre]`; `[1]` (bottom) is the session pill + widgets as one `#[align=centre]` block.
+  `#[align=centre]`; `[1]` (bottom) is the session pill + widgets as one `#[align=centre]` block,
+  plus the mode tag (`LOCAL`/`PASS`, see the nested-tmux bullet) at `#[align=right]`. tmux centres
+  that block in the space left of the tag, so it sits ~3.5 cells left of the tab row's centre -
+  deliberate, since centring on the full width would cost the widgets another 7 cells at every
+  tier floor. In a window showing a nested tmux the session drops to `status on`, so only `[0]`
+  draws, and `[0]` becomes a 1-row strip holding just the tag (the window-list format itself lives
+  in `@_sb_windows`).
   Note the tab list is on `[0]`, i.e. the slot whose *default* content is the one-line format — its
   `#[range=window|#{window_index} ...]` markers are carried over from that default verbatim; drop
-  them and click-to-select-tab breaks (`mouse on`, `tmux.conf:113`). The bottom bar is deliberately
+  them and click-to-select-tab breaks (`set -g mouse on` in `tmux.conf`). The bottom bar is deliberately
   one centered group rather than `#[align=left]`…`#[align=right]`: edge-anchoring splits it into two
   clusters with a dead gap between them at wide terminal sizes.
 
   **Responsive tiers.** The bottom bar sheds widgets and tightens separators as the client narrows
-  so it never overflows and gets clipped: `>=110` everything with wide separators, `>=75`
-  everything with tight separators, `>=50` drops path + day, `<50` is time + battery only
-  (boundaries verified inclusive at exactly 110/75/50). Two non-obvious constraints govern how
-  those thresholds are written, and **both fail silently**:
+  so it never overflows and gets clipped: `>=117` everything with wide separators, `>=82`
+  everything with tight separators, `>=57` drops path + day, `<57` is time + battery only
+  (boundaries verified inclusive at exactly 117/82/57). Each threshold is the width its widgets
+  need (110/75/50, the values before the mode tag existed) plus the tag's 7 cells, so every tier
+  floor keeps the headroom it was tuned with (17/12/8 free cells with a 4-character branch). The
+  headroom matters because `git.sh` allows branch names up to 26 cells, and an overflowing centre
+  block is trimmed from both ends, cutting the session pill (the prefix indicator) first. Outside a
+  git repo the git widget and its separator vanish together (`@_sb_gitseg`), so there is never a
+  doubled `│  │`. Two non-obvious constraints govern how those thresholds are written, and
+  **both fail silently**:
   - **tmux's comparison operators are string comparisons, not numeric.** `#{>=:90,100}` is *true*
     and `#{>=:100,80}` is *false*. A width test written the obvious way appears to work whenever
     the two numbers happen to have the same digit count, which is exactly how it survives a casual
     test. Every threshold therefore uses an arithmetic sign test instead: `#{e|-|:#{client_width},N}`
     goes negative iff `width < N`, and `#{m:-*,...}` detects the leading minus.
-  - **A `#{?...}` condition must be written inline.** Factoring one into its own option and
-    referencing it as `#{?#{E:@opt},a,b}` does not work: a bare `1`/`0` in the condition slot is
-    looked up as a *variable name*, not read as a boolean, so it is always false. Only the widget
-    fragments and the tier groups are factored into `@_sb_*` options; the conditions stay inline.
+  - **A `#{?...}` condition kept in an option must be referenced as `#{?#{E:@opt},a,b}`.**
+    `#{?@opt,a,b}` and `#{?#{@opt},a,b}` test the option's *raw text*, which is never empty, so
+    they are always true. A literal `1`/`0` typed as the condition is looked up as a *variable
+    name*, so `#{?1,a,b}` is false. `#{E:}` is fine: verified on tmux 3.7c against a live client at
+    widths either side of a threshold, where the factored and the inline form agree (an earlier
+    note here claimed the `#{E:}` form is always false; it is not). The width conditions here
+    still stay inline, and only the widget fragments and tier groups are factored into `@_sb_*`
+    options.
 
   `#()` **does** run correctly inside those nested `#{E:}`-expanded conditional branches (verified
   on the live server by clearing `${XDG_CACHE_HOME}/tmux-statusbar/` and watching all three widget
@@ -341,6 +360,68 @@ These configs are entangled; changing one in isolation breaks another.
   **bash 3.2 (macOS `/bin/sh`) mis-parses nested `#{..#{..},..}` inside a quoted `"$(...)"`**,
   silently brace-expanding the format. `agentmux.tmux` therefore assembles every format from
   variables and never inside a command substitution.
+- **Nested tmux (the "Nested tmux" section of `tmux.conf`).** Local tmux is local, remote tmux is
+  remote: the same dotfiles run on the box you ssh into, and while the current window's active
+  pane shows a nested tmux, the local 2-row bar collapses to a 1-row strip holding only the mode
+  tag and the agentmux sidebar leaves that window, so the nested tmux's own bar and sidebar are
+  what you see. A remote without tmux keeps both. The pieces form one contract:
+  - **The mark.** `set-titles-string` prefixes the title with `tmux@<host>: ` when the tmux's own
+    client is a tmux (`client_termname` `tmux*`/`screen*`), i.e. only on the nested side; kitty
+    still gets exactly `session:window[ - agent blocked| - agent done]`. `terminal-features
+    ",tmux*:title"` is what lets the nested tmux emit a title at all (tmux-256color's terminfo has
+    no title capability). tmux.conf owns the title (`@agentmux_titles off`) and embeds agentmux's
+    public `#{E:@agentmux_title_human}` fragment.
+  - **Detection.** `%hidden NESTED` = the mark in `pane_title` **and** a non-shell
+    `pane_current_command` (agentmux's shell regex), so a stale mark on a pane back at a prompt
+    does not count. It is used three times: `@agentmux_sidebar_skip`, `@nested_sync`, and the
+    `status-format[0]` branch.
+  - **Row count.** `@nested_sync` walks every session (S/W/P loops, fork-free) and emits `set -t
+    <session> status on` or `set -u ... status` only for a session whose value is wrong, because
+    every `set status` redraws every client. It runs from `pane-title-changed`,
+    `session-window-changed`, `window-pane-changed`, `client-session-changed`, `client-attached`,
+    `pane-exited` and `after-kill-pane`, all at index `[80]` (agentmux owns 70-79), plus once at
+    load so `C-a r` converges. What the rows *show* is pure format.
+  - **The reset.** `config/zsh/lib/title.zsh` resets the title to `%M` (the full host name, which
+    is also tmux's default pane title) at every prompt. That is what clears the mark: on detach the
+    remote prompt retitles the pane, on ssh exit the local one does, `pane-title-changed` fires, and
+    the bar and sidebar come back. Without it the local bar stays collapsed until something else
+    retitles the pane.
+  - **Passthrough, `prefix p`.** Sets the session's `prefix` to `None` (the prefix key otherwise
+    wins over any key table) and its default `key-table` to `passthrough`, which binds only `C-a`:
+    every other key, `M-1..9`/`C-h/j/k/l`/`C-f`/mouse included, is unbound there and so goes to the
+    pane. `C-a p` comes back; `C-a <key>` is re-sent as `C-a <key>` (`send-keys` with no key
+    re-sends the one that fired the binding), so `C-a C-a` still reaches the nested send-prefix.
+    `switch-client -T` is needed on both edges because changing `key-table` does not move a client
+    already sitting in a table. Both options are per *session*, so every client on that session
+    shares the mode. Replaces the default `p` (previous-window).
+  - **Mode tag.** `@_mode_tag` is a dim `LOCAL`, or a purple `PASS` pill while
+    `client_key_table` is `passthrough*`. A tmux whose client is a tmux drops `LOCAL` (the strip
+    below it already says who has the keys) but still shows `PASS`, for deeper nesting.
+  - **The clipboard.** A yank inside the nested tmux (nvim's `"+y`/`"*y`, or the nested tmux's own
+    copy-mode `y`) has to cross two OSC52 hops to reach the macOS pasteboard: nvim's `tmux.nvim`
+    plugin (`copy_sync.enable`, `config/nvim/lua/1henrypage/plugins/tmux.lua`) runs `tmux
+    load-buffer -w -`, which asks the nested (remote) tmux to push the buffer to its client via
+    OSC52; that client is the outer tmux's pane, which (with `set-clipboard on`) relays the OSC52
+    it receives on to kitty; kitty's `clipboard_control write-clipboard` (`kitty.conf`) lands it on
+    the pasteboard. Each hop requires an `Ms` (OSC52) terminfo capability on the writing side
+    (`man tmux` on `set-clipboard`/`load-buffer -w`: "using the xterm escape sequence, if there is
+    an Ms entry" / "if possible"). The outer hop always has it (`xterm-kitty` carries `Ms` in its
+    terminfo). The nested hop is TERM-dependent: tmux **does** ship a built-in `tmux` entry in its
+    terminal-features table (with `clipboard`, i.e. `Ms`), auto-applied via an XTVERSION
+    probe/reply exchanged with the outer tmux - but only from **tmux 3.2 onward**; a nested tmux
+    older than that (Ubuntu 20.04's stock 3.0a, Debian 11's 3.1c) gets no `Ms` at all, silently
+    accepts the OSC52 into a local paste buffer instead - the "it copies to the remote's buffer"
+    symptom - and never relays it outward. `set -as terminal-features ",tmux*:title:clipboard"`
+    pins the feature explicitly so an old remote tmux behaves like a new one; it is a no-op when
+    the remote already auto-detects it. None of this is a passthrough-mode problem: regular
+    keystrokes and OSC52 replies reach the remote pane regardless of local key-table state, so a
+    fix here can't be (and doesn't need to be) gated on it.
+    Two sharper edges, from reading tmux's OSC52 path directly: (1) the outer tmux only relays an
+    inbound OSC52 write for the client's *current* window/pane - `screen_write_setselection` sets
+    no invisible-pane override, so a yank while that pane sits in a background local window is
+    dropped silently; (2) the outer tmux's `input-buffer-size` (default 1 MiB, base64 means
+    roughly 768 KB of raw text) caps a single OSC52 sequence - `INPUT_DISCARD`s the whole thing,
+    silently, past that. Both are latent, not fixed by the terminal-features line above.
 - **tmux PATH + plugin path:** because tmux is now `exec`'d from a real login zsh (previous
   bullet) instead of being launched directly by kitty with a truncated GUI PATH, the tmux server
   simply *inherits* a correct, fully-exported environment — `PATH` and `TMUX_PLUGIN_MANAGER_PATH`

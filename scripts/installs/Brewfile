@@ -25,6 +25,7 @@ brew 'starship'     # Prompt
 brew 'beads'        # Agentic issue tracker
 brew 'sesh'         # Smart tmux session manager (zoxide-backed)
 brew 'lazygit'      # Terminal UI for git (tmux popup)
+brew 'tree-sitter-cli' # Builds Neovim's tree-sitter parsers (required by nvim-treesitter main)
 brew 'FelixKratz/formulae/borders' # Focused-window border daemon (AeroSpace companion)
 
 # CASKS

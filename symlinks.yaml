@@ -51,6 +51,14 @@
     ${XDG_CONFIG_HOME}/kitty: config/kitty
     ${XDG_CONFIG_HOME}/aerospace: config/aerospace
     ${XDG_CONFIG_HOME}/starship.toml: config/general/starship.toml
+    # bob only looks in the platform default config dir, which on macOS ignores XDG - see
+    # config/bob/config.toml for why this is linked rather than pointed at via BOB_CONFIG.
+    ~/Library/Application Support/bob/config.toml:
+      if: '[ `uname` = Darwin ]'
+      path: config/bob/config.toml
+    ${XDG_CONFIG_HOME}/bob/config.toml:
+      if: '[ `uname` != Darwin ]'
+      path: config/bob/config.toml
 
     # Utility config files
     ${HOME}/.gitconfig:
