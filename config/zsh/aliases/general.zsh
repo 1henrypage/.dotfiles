@@ -137,3 +137,17 @@ dskills() {
   shift
   npx skills "$cmd" -g --copy "$@"
 }
+
+# `tmux kill-server` only kills the server process; tmux-resurrect's save survives on disk and
+# tmux-continuum replays it into the next server, so the kill looks like it did nothing. Drop the
+# `last` symlink restore.sh gates on; the timestamped dumps beside it stay as recoverable history.
+# The rm is handed to the server as a blocking `run-shell` ahead of the kill, so it still
+# completes when the calling shell is itself a pane about to be torn down by that same kill.
+tmux() {
+  if [[ "$1" != kill-server ]]; then
+    command tmux "$@"
+    return
+  fi
+  local last="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect/last"
+  command tmux run-shell "rm -f ${(q)last}" \; kill-server 2>/dev/null || rm -f "$last"
+}
